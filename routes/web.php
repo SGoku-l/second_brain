@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ChatController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use Laravel\Socialite\Socialite;
@@ -29,6 +30,14 @@ Route::middleware('auth')->prefix('auth/github')->group(function () {
         ]);
         return redirect('/dashboard');
     });
+
+});
+
+Route::middleware('auth')->controller(ChatController::class)->group(function (){
+
+    Route::get('/chat' , 'index')->name('chat.index');
+
+    Route::post('/chat' , 'ask')->name('chat.ask');
 
 });
 
