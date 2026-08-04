@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Source;
 use App\Models\User;
 use App\Services\Retrieval\Retriever;
 use Illuminate\Http\Request;
@@ -78,8 +79,20 @@ class McpController extends Controller
                                 'query' => [
                                     'type' => 'string', 'description' => 'The question or topic to search for'
                                 ],
+                                'repo' => [
+                                    'type' => 'string',
+                                    'description' => 'Optional: limit the search to one repo identifier (for example owner/repo). Omit to search all connected repos.'
+                                ],
                             ],
                             'required' => ['query'],
+                        ],
+                    ],
+                    [
+                        'name' => 'list_repos',
+                        'description' => 'List all repositories connected to the user\'s second brain.',
+                        'inputSchema' => [
+                            'type' => 'object',
+                            'properties' => new \stdClass(),
                         ],
                     ],
                 ],
@@ -92,19 +105,36 @@ class McpController extends Controller
         $toolName = $params['name'] ?? null;
         $args = $params['arguments'] ?? [];
 
-        if ($toolName !== 'search_context') {
-            return response()->json([
+        return match ($toolName) {
+            'search_context' => $this->searchContext($id, $args, $user),
+            'list_repos' => $this->listRepos($id, $user),
+            default => response()->json([
                 'jsonrpc' => '2.0',
                 'id' => $id,
                 'error' => ['code' => -32602, 'message' => 'Unknown tool'],
+            ]),
+        };
+    }
+
+    protected function searchContext($id, array $args, User $user)
+    {
+        $query = $args['query'] ?? null;
+        $repo = $args['repo'] ?? null;
+
+        if (! is_string($query) || trim($query) === '') {
+            return response()->json([
+                'jsonrpc' => '2.0',
+                'id' => $id,
+                'error' => ['code' => -32602, 'message' => 'Missing query'],
             ]);
         }
 
+        $sourceIds = $this->resolveSourceIds($user, $repo);
         $retriever = new Retriever();
-        $results = $retriever->search($args['query'], $user->id);
+        $results = $retriever->search($query, $user->id, 5, $sourceIds);
 
         $text = collect($results)
-            ->map(fn ($r) => "File: {$r->file_path}\n{$r->content}")
+            ->map(fn ($r) => "Repo: {$r->repo}\nFile: {$r->file_path}\n{$r->content}")
             ->implode("\n\n---\n\n");
 
         return response()->json([
@@ -116,6 +146,41 @@ class McpController extends Controller
                 ],
             ],
         ]);
+    }
+
+    protected function listRepos($id, User $user)
+    {
+        $repos = Source::query()
+            ->whereHas('workspace', fn ($query) => $query->where('user_id', $user->id))
+            ->select('id', 'identifier')
+            ->orderBy('identifier')
+            ->get();
+
+        $text = $repos->map(fn ($repo) => "{$repo->identifier} | {$repo->id}")
+            ->implode("\n");
+
+        return response()->json([
+            'jsonrpc' => '2.0',
+            'id' => $id,
+            'result' => [
+                'content' => [
+                    ['type' => 'text', 'text' => $text ?: 'No repositories connected.'],
+                ],
+            ],
+        ]);
+    }
+
+    protected function resolveSourceIds(User $user, ?string $repoName): array
+    {
+        if (! is_string($repoName) || trim($repoName) === '') {
+            return [];
+        }
+
+        return Source::query()
+            ->whereHas('workspace', fn ($query) => $query->where('user_id', $user->id))
+            ->where('identifier', trim($repoName))
+            ->pluck('id')
+            ->toArray();
     }
 
 }
