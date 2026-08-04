@@ -9,101 +9,9 @@
         class="h-screen flex flex-col transition-colors duration-theme"
         :class="darkMode ? 'bg-sb-bg-dark' : 'bg-sb-bg-light'"
     >
-        {{-- Top bar --}}
-        <header class="glass-panel border-b shrink-0 z-20">
-            <div class="flex items-center justify-between h-14 px-4 sm:px-6">
-                <div class="flex items-center gap-3">
-                    <button
-                        @click="toggleSidebar()"
-                        class="lg:hidden p-2 -ml-2 rounded-lg transition-colors"
-                        :class="darkMode ? 'text-stone-400 hover:text-stone-200 hover:bg-white/5' : 'text-stone-500 hover:text-stone-700 hover:bg-stone-100'"
-                        aria-label="Toggle sidebar"
-                    >
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6h16M4 12h16M4 18h16"/>
-                        </svg>
-                    </button>
-
-                    <a href="{{ route('dashboard') }}" class="flex items-center gap-2.5 group">
-                        <div class="w-8 h-8 rounded-lg flex items-center justify-center transition-shadow duration-200"
-                             :class="darkMode ? 'bg-sb-accent/15 border border-sb-accent/25 group-hover:shadow-glow-sm' : 'bg-emerald-100 border border-emerald-200'">
-                            <svg class="w-4 h-4 text-sb-accent" :class="!darkMode && 'text-sb-accent-light'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
-                            </svg>
-                        </div>
-                        <span class="font-semibold text-base tracking-tight transition-colors"
-                              :class="darkMode ? 'text-stone-100' : 'text-stone-900'">
-                            Second Brain
-                        </span>
-                    </a>
-                </div>
-
-                <div class="flex items-center gap-3 sm:gap-4">
-                    {{-- Dark / Light mode toggle --}}
-                    <button
-                        @click="toggleTheme()"
-                        class="theme-toggle-track"
-                        role="switch"
-                        :aria-checked="darkMode"
-                        aria-label="Toggle dark mode"
-                    >
-                        <span class="theme-toggle-thumb">
-                            {{-- Sun icon (light mode) --}}
-                            <svg class="theme-icon theme-icon-sun" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd"/>
-                            </svg>
-                            {{-- Moon icon (dark mode) --}}
-                            <svg class="theme-icon theme-icon-moon" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/>
-                            </svg>
-                        </span>
-                    </button>
-
-                    {{-- User avatar --}}
-                    <div class="relative" x-data="{ open: false }">
-                        <button
-                            @click="open = !open"
-                            class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all duration-200"
-                            :class="darkMode ? 'bg-sb-accent/20 text-sb-accent border border-sb-accent/30 hover:shadow-glow-sm' : 'bg-emerald-100 text-sb-accent-light border border-emerald-200'"
-                        >
-                            {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
-                        </button>
-                        <div
-                            x-show="open"
-                            @click.outside="open = false"
-                            x-transition:enter="transition ease-out duration-150"
-                            x-transition:enter-start="opacity-0 scale-95"
-                            x-transition:enter-end="opacity-100 scale-100"
-                            x-transition:leave="transition ease-in duration-100"
-                            x-transition:leave-start="opacity-100 scale-100"
-                            x-transition:leave-end="opacity-0 scale-95"
-                            class="absolute right-0 mt-2 w-48 glass-panel rounded-xl py-1 z-50 shadow-lg"
-                            style="display: none;"
-                        >
-                            <div class="px-4 py-2.5 border-b" :class="darkMode ? 'border-white/10' : 'border-stone-200'">
-                                <p class="text-sm font-medium truncate" :class="darkMode ? 'text-stone-200' : 'text-stone-800'">{{ Auth::user()->name }}</p>
-                                <p class="text-xs truncate" :class="darkMode ? 'text-stone-500' : 'text-stone-400'">{{ Auth::user()->email }}</p>
-                            </div>
-                            <a href="{{ route('profile.edit') }}" class="block px-4 py-2 text-sm transition-colors"
-                               :class="darkMode ? 'text-stone-400 hover:text-stone-200 hover:bg-white/5' : 'text-stone-600 hover:text-stone-800 hover:bg-stone-50'">
-                                Profile
-                            </a>
-                            <a href="{{ route('dashboard') }}" class="block px-4 py-2 text-sm transition-colors"
-                               :class="darkMode ? 'text-stone-400 hover:text-stone-200 hover:bg-white/5' : 'text-stone-600 hover:text-stone-800 hover:bg-stone-50'">
-                                Dashboard
-                            </a>
-                            <form method="POST" action="{{ route('logout') }}">
-                                @csrf
-                                <button type="submit" class="w-full text-left px-4 py-2 text-sm transition-colors"
-                                        :class="darkMode ? 'text-stone-400 hover:text-stone-200 hover:bg-white/5' : 'text-stone-600 hover:text-stone-800 hover:bg-stone-50'">
-                                    Log out
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </header>
+        <div class="mx-auto w-full max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
+            @include('components.sb-topbar')
+        </div>
 
         <div class="flex flex-1 overflow-hidden relative">
             {{-- Sidebar overlay (mobile) --}}
@@ -122,10 +30,10 @@
 
             {{-- Left sidebar --}}
             <aside
-                class="fixed lg:relative z-30 w-72 flex flex-col glass-panel border-r transform transition-transform duration-300 ease-in-out lg:translate-x-0 top-14 lg:top-auto h-[calc(100vh-3.5rem)] lg:h-auto"
+                class="fixed lg:relative z-30 w-72 flex flex-col rounded-[28px] transform transition-transform duration-300 ease-in-out lg:translate-x-0 top-14 lg:top-auto h-[calc(100vh-3.5rem)] lg:h-auto lg:my-3 lg:ml-3 lg:mr-0 overflow-hidden"
                 :class="[
                     sidebarOpen ? 'translate-x-0' : '-translate-x-full',
-                    darkMode ? '' : 'shadow-glass-light'
+                    darkMode ? 'border border-white/10 bg-[#0f0f0f]/95 shadow-[0_0_0_1px_rgba(255,255,255,0.03)]' : 'border border-sb-border-light bg-sb-glass-light/95 shadow-glass-light'
                 ]"
             >
                 <div class="p-4 border-b" :class="darkMode ? 'border-white/10' : 'border-stone-200/80'">

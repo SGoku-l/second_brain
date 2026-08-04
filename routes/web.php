@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\ProfileController;
+use App\Models\Source;
 use Illuminate\Support\Facades\Route;
 use Laravel\Socialite\Socialite;
 
@@ -10,7 +11,23 @@ Route::get('/', function () {
 });
 
 Route::get('/dashboard', function () {
-    return view('dashboard');
+    $user = auth()->user();
+    $repos = Source::query()
+        ->whereHas('workspace', fn ($query) => $query->where('user_id', $user->id))
+        ->orderBy('identifier')
+        ->get()
+        ->map(fn ($source) => [
+            'id' => $source->id,
+            'identifier' => $source->identifier,
+            'status' => $source->last_synced_at ? 'indexed' : 'indexing',
+        ])
+        ->values()
+        ->all();
+
+    return view('dashboard', [
+        'githubConnected' => ! empty($user->github_token),
+        'repos' => $repos,
+    ]);
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
@@ -21,7 +38,7 @@ Route::middleware('auth')->group(function () {
 
 Route::middleware('auth')->prefix('auth/github')->group(function () {
 
-    Route::get('/' , fn () => Socialite::driver('github')->scopes(['repo'])->redirect());
+    Route::get('/' , fn () => Socialite::driver('github')->scopes(['repo'])->redirect())->name('github.connect');
 
     Route::get('/callback' , function () {
         $githubUser = Socialite::driver('github')->user();
@@ -39,6 +56,14 @@ Route::middleware('auth')->controller(ChatController::class)->group(function (){
 
     Route::post('/chat' , 'ask')->name('chat.ask');
 
+});
+
+Route::middleware('auth')->group(function () {
+    Route::get('/mcp/connect', function () {
+        return view('mcp.connect', [
+            'apiToken' => auth()->user()->api_token,
+        ]);
+    })->name('mcp.connect');
 });
 
 
