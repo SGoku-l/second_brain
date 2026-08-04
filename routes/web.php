@@ -41,4 +41,6 @@ Route::middleware('auth')->controller(ChatController::class)->group(function (){
 
 });
 
+
+
 require __DIR__.'/auth.php';
