@@ -15,10 +15,17 @@ class Source extends Model
         'type',
         'identifier',
         'meta',
-        'last_synced_at'
+        'last_synced_at',
     ];
 
-    
+    protected function casts(): array
+    {
+        return [
+            'meta' => 'array',
+            'last_synced_at' => 'datetime',
+        ];
+    }
+
 
     public function workspace(): BelongsTo{
 

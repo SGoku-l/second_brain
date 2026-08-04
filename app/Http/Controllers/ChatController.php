@@ -2,50 +2,104 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Source;
 use App\Services\Retrieval\Answerer;
 use App\Services\Retrieval\Retriever;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\View\View;
 
 class ChatController extends Controller
 {
-
-    public function index(){
-
-        return view('chat.index');
-
+    public function index(): View
+    {
+        return view('chat.index', [
+            'repos' => $this->getReposForUser(auth()->id()),
+        ]);
     }
 
-    public function ask(Request $request){
-
+    public function ask(Request $request): View|JsonResponse
+    {
         $request->validate([
-            'question' => 'required|string|max:1000'
+            'question' => 'required|string|max:1000',
+            'repos' => 'nullable|array',
+            'repos.*' => 'uuid',
         ]);
 
         $user = auth()->user();
         $retriever = new Retriever();
-        $result    = $retriever->search($request->question , $user->id);
+        $sourceIds = $request->input('repos', []);
+        $results = $retriever->search($request->question, $user->id, 5, $sourceIds);
 
         $answer = null;
-        $error  = null;
+        $error = null;
 
-        try{
-
+        try {
             $answerer = new Answerer();
-            $answer   = $answerer->answer($request->question , $result);
-
-        }catch(\Exception $e){
-
+            $answer = $answerer->answer($request->question, $results);
+        } catch (\Exception $e) {
             $error = 'Answer generation is temporarily unavailable, but here are the relevant files found.';
-
         }
 
-        return view('chat.index' ,[
-            'question' => $request->question,
-            'result'   => $result,
-            'answer'   => $answer,
-            'error'    => $error
-        ]);
+        $sources = collect($results)->map(fn ($r) => [
+            'file_path' => $r->file_path,
+            'content' => $r->content,
+            'distance' => round($r->distance, 4),
+        ])->values()->all();
 
+        if ($request->expectsJson()) {
+            return response()->json([
+                'answer' => $answer,
+                'sources' => $sources,
+                'error' => $error,
+            ]);
+        }
+
+        return view('chat.index', [
+            'repos' => $this->getReposForUser($user->id),
+            'initialMessages' => [
+                ['role' => 'user', 'content' => $request->question],
+                [
+                    'role' => 'assistant',
+                    'content' => $answer ?? 'No answer could be generated.',
+                    'sources' => $sources,
+                    'error' => $error,
+                ],
+            ],
+        ]);
     }
 
+    private function getReposForUser(string $userId): array
+    {
+        return Source::query()
+            ->whereHas('workspace', fn ($q) => $q->where('user_id', $userId))
+            ->orderBy('identifier')
+            ->get()
+            ->map(fn (Source $source) => [
+                'id' => $source->id,
+                'name' => $source->identifier,
+                'status' => $this->resolveSyncStatus($source),
+            ])
+            ->values()
+            ->all();
+    }
+
+    private function resolveSyncStatus(Source $source): string
+    {
+        $meta = is_array($source->meta) ? $source->meta : [];
+
+        if (($meta['status'] ?? null) === 'error') {
+            return 'error';
+        }
+
+        if (($meta['status'] ?? null) === 'indexing') {
+            return 'indexing';
+        }
+
+        if ($source->last_synced_at) {
+            return 'indexed';
+        }
+
+        return 'indexing';
+    }
 }
