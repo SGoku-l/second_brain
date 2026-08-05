@@ -39,8 +39,37 @@
                 </div>
             @endif
 
+            @if(session('repo_ingest_message'))
+                <div
+                    x-data="{ show: true }"
+                    x-init="setTimeout(() => show = false, 4000)"
+                    x-show="show"
+                    x-transition:enter="transition ease-out duration-200"
+                    x-transition:enter-start="opacity-0 translate-y-2"
+                    x-transition:enter-end="opacity-100 translate-y-0"
+                    x-transition:leave="transition ease-in duration-150"
+                    x-transition:leave-start="opacity-100 translate-y-0"
+                    x-transition:leave-end="opacity-0 translate-y-2"
+                    class="mt-4"
+                >
+                    <div class="glass-panel rounded-[20px] px-4 py-3">
+                        <div class="flex items-center justify-between gap-3">
+                            <p class="text-sm font-medium text-sb-accent">{{ session('repo_ingest_message') }}</p>
+                            <button
+                                type="button"
+                                @click="show = false"
+                                class="rounded-full border border-white/10 px-2 py-1 text-xs text-stone-500 transition hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-200"
+                                aria-label="Dismiss message"
+                            >
+                                ×
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            @endif
+
             @if(! $githubConnected)
-                <div x-data="{ open: true }" x-show="open" class="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/45 px-4" style="display: none;">
+                <div x-data="{ open: true }" x-show="open" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/45 px-4">
                     <div class="glass-panel relative w-full max-w-lg rounded-[26px] p-6">
                         <button
                             type="button"
@@ -105,12 +134,122 @@
                             </div>
                         </div>
 
-                        <a href="{{ route('github.connect') }}" class="inline-flex items-center gap-2 rounded-xl border border-sb-accent/30 bg-sb-accent/10 px-3 py-2 text-sm font-medium text-sb-accent hover:bg-sb-accent/15">
-                            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                                <path d="M12 5v14M5 12h14" />
-                            </svg>
-                            <span>Add repo</span>
-                        </a>
+                        {{-- Add repo modal trigger + modal --}}
+                        <div>
+
+                            @if($githubConnected)
+                                <button
+                                    type="button"
+                                    @click="$dispatch('open-repo-modal')"
+                                    class="inline-flex items-center gap-2 rounded-xl border border-sb-accent/30 bg-sb-accent/10 px-3 py-2 text-sm font-medium text-sb-accent hover:bg-sb-accent/15"
+                                >
+                                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                        <path d="M12 5v14M5 12h14" />
+                                    </svg>
+                                    <span>Add repo</span>
+                                </button>
+                            @else
+                                
+                                    href="{{ route('github.connect') }}"
+                                    class="inline-flex items-center gap-2 rounded-xl border border-sb-accent/30 bg-sb-accent/10 px-3 py-2 text-sm font-medium text-sb-accent hover:bg-sb-accent/15"
+                                >
+                                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                        <path d="M12 5v14M5 12h14" />
+                                    </svg>
+                                    <span>Add repo</span>
+                                </a>
+                            @endif
+
+                            <template x-teleport="body">
+                                <div
+                                     x-data="{
+                                         modalOpen: false,
+                                         loading: false,
+                                         search: '',
+                                         availableRepos: [],
+                                         selectedRepos: [],
+                                         async loadRepos() {
+                                             this.loading = true;
+                                             try {
+                                                 const res = await fetch('{{ route('repos.available') }}');
+                                                 const data = await res.json();
+                                                 this.availableRepos = data.repos ?? [];
+                                             } catch (e) {
+                                                 this.availableRepos = [];
+                                             }
+                                             this.loading = false;
+                                         },
+                                         toggleRepo(fullName) {
+                                             if (this.selectedRepos.includes(fullName)) {
+                                                 this.selectedRepos = this.selectedRepos.filter(r => r !== fullName);
+                                             } else {
+                                                 this.selectedRepos.push(fullName);
+                                             }
+                                         },
+                                         get filteredRepos() {
+                                             if (!this.search) return this.availableRepos;
+                                             return this.availableRepos.filter(r =>
+                                                 r.full_name.toLowerCase().includes(this.search.toLowerCase())
+                                             );
+                                         }
+                                     }"
+                                     @open-repo-modal.window="modalOpen = true; loadRepos()"
+                                     x-show="modalOpen" x-cloak
+                                     class="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+                                <div @click.outside="modalOpen = false"
+                                     class="glass-panel w-full max-w-lg rounded-[26px] p-6 relative">
+
+                                    <button type="button" @click="modalOpen = false"
+                                            class="absolute right-4 top-4 inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-black/5 text-sm text-stone-500 transition hover:border-sb-accent/30 hover:bg-sb-accent/10 hover:text-sb-accent dark:text-stone-400 dark:hover:text-sb-accent"
+                                            aria-label="Close">
+                                        ×
+                                    </button>
+
+                                    <h3 class="text-lg font-semibold text-stone-900 dark:text-stone-100 mb-4">Select repositories to index</h3>
+
+                                    <input type="text" x-model="search" placeholder="Search repos..."
+                                           class="w-full mb-4 px-3 py-2 rounded-xl bg-black/5 dark:bg-black/30 border border-white/10 text-sm text-stone-900 dark:text-stone-100 focus:outline-none focus:border-sb-accent/50">
+
+                                    <div class="max-h-72 overflow-y-auto scrollbar-hide space-y-2 mb-4">
+                                        <template x-if="loading">
+                                            <p class="text-sm text-stone-500 dark:text-stone-400">Loading repositories...</p>
+                                        </template>
+
+                                        <template x-if="!loading && filteredRepos.length === 0">
+                                            <p class="text-sm text-stone-500 dark:text-stone-400">No repositories found.</p>
+                                        </template>
+
+                                        <template x-for="repo in filteredRepos" :key="repo.full_name">
+                                            <label class="flex items-center gap-3 px-3 py-2 rounded-xl"
+                                                   :class="repo.already_added ? 'opacity-40' : 'hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer'">
+                                                <input type="checkbox"
+                                                       :disabled="repo.already_added"
+                                                       :checked="selectedRepos.includes(repo.full_name)"
+                                                       @change="toggleRepo(repo.full_name)"
+                                                       class="h-4 w-4 shrink-0 rounded border-stone-400 bg-white accent-emerald-500 dark:border-white/20 dark:bg-transparent">
+                                                <span class="flex-1 text-sm text-stone-900 dark:text-stone-100 truncate" x-text="repo.full_name"></span>
+                                                <span x-show="repo.already_added" class="text-xs text-sb-accent shrink-0">Indexed</span>
+                                                <span x-show="!repo.already_added && repo.private" class="shrink-0 text-xs text-stone-600 dark:text-stone-400">Private</span>
+                                            </label>
+                                        </template>
+                                    </div>
+
+                                    <form method="POST" action="{{ route('repos.ingest') }}">
+                                        @csrf
+                                        <template x-for="r in selectedRepos" :key="r">
+                                            <input type="hidden" name="repo_full_names[]" :value="r">
+                                        </template>
+
+                                        <button type="submit"
+                                                :disabled="selectedRepos.length === 0"
+                                                class="w-full py-2 rounded-xl bg-sb-accent text-sb-bg-dark font-medium disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-90 transition">
+                                            Index selected repos
+                                        </button>
+                                    </form>
+                                </div>
+                                </div>
+                            </template>
+                        </div>
                     </div>
 
                     <div class="mt-5 space-y-3">
@@ -128,7 +267,7 @@
                             </div>
                         @empty
                             <div class="rounded-2xl border border-dashed border-stone-300 bg-black/5 px-4 py-8 text-center text-sm text-stone-500 dark:border-white/10 dark:text-stone-400">
-                                No repositories are linked yet. Use the GitHub button above to add one.
+                                No repositories are linked yet. Use the Add repo button above to add one.
                             </div>
                         @endforelse
                     </div>
@@ -151,4 +290,3 @@
         </div>
     </div>
 </x-app-layout>
-

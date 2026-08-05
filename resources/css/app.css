@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+[x-cloak] {
+    display: none !important;
+}
+
 @layer base {
     html {
         @apply antialiased;
@@ -31,6 +35,16 @@
     /* Glass panels */
     .glass-panel {
         @apply backdrop-blur-xl border transition-colors duration-theme;
+    }
+
+    /* Hide scrollbar but keep scroll functionality */
+    .scrollbar-hide {
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+
+    .scrollbar-hide::-webkit-scrollbar {
+        display: none;
     }
 
 html.dark .glass-panel {

@@ -2,7 +2,9 @@
 
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\RepoController;
 use App\Models\Source;
+use App\Models\Workspace;
 use Illuminate\Support\Facades\Route;
 use Laravel\Socialite\Socialite;
 
@@ -12,6 +14,11 @@ Route::get('/', function () {
 
 Route::get('/dashboard', function () {
     $user = auth()->user();
+    Workspace::firstOrCreate([
+        'user_id' => $user->id,
+        'name' => 'Default',
+    ]);
+
     $repos = Source::query()
         ->whereHas('workspace', fn ($query) => $query->where('user_id', $user->id))
         ->orderBy('identifier')
@@ -19,7 +26,7 @@ Route::get('/dashboard', function () {
         ->map(fn ($source) => [
             'id' => $source->id,
             'identifier' => $source->identifier,
-            'status' => $source->last_synced_at ? 'indexed' : 'indexing',
+            'status' => $source->chunks()->exists() ? 'indexed' : 'indexing',
         ])
         ->values()
         ->all();
@@ -65,6 +72,9 @@ Route::middleware('auth')->group(function () {
             'apiToken' => auth()->user()->api_token,
         ]);
     })->name('mcp.connect');
+
+    Route::get('/repos/available', [RepoController::class, 'available'])->name('repos.available');
+    Route::post('/repos/ingest', [RepoController::class, 'ingest'])->name('repos.ingest');
 });
 
 
