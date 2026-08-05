@@ -19,7 +19,7 @@
                 </a>
                 <a href="{{ route('chat.index') }}"
                    class="rounded-full px-3 py-1 text-sm transition-colors @if($isChat) font-semibold text-sb-accent @else text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-200 @endif">
-                    Chat
+                    AI Chat
                 </a>
             </div>
         </div>
