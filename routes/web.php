@@ -45,7 +45,8 @@ Route::middleware('auth')->prefix('auth/github')->group(function () {
         auth()->user()->update([
             'github_token' => encrypt($githubUser->token)
         ]);
-        return redirect('/dashboard');
+
+        return redirect('/dashboard')->with('github_connected', true);
     });
 
 });

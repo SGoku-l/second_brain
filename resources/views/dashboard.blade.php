@@ -3,9 +3,53 @@
         <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
             @include('components.sb-topbar')
 
+            @if(session('github_connected'))
+                <div
+                    x-data="{ show: true }"
+                    x-init="setTimeout(() => show = false, 3500)"
+                    x-show="show"
+                    x-transition:enter="transition ease-out duration-200"
+                    x-transition:enter-start="opacity-0 translate-y-2"
+                    x-transition:enter-end="opacity-100 translate-y-0"
+                    x-transition:leave="transition ease-in duration-150"
+                    x-transition:leave-start="opacity-100 translate-y-0"
+                    x-transition:leave-end="opacity-0 translate-y-2"
+                    class="mt-4"
+                >
+                    <div class="glass-panel rounded-[20px] px-4 py-3">
+                        <div class="flex items-center justify-between gap-3">
+                            <div class="flex items-center gap-3">
+                                <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-sb-accent/10 text-sb-accent">
+                                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                        <path d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.866-.013-1.7-2.782.605-3.369-1.341-3.369-1.341-.454-1.156-1.11-1.464-1.11-1.464-.908-.621.069-.608.069-.608 1.004.071 1.532 1.031 1.532 1.031.892 1.53 2.341 1.088 2.91.832.09-.646.35-1.088.636-1.339-2.221-.253-4.555-1.111-4.555-4.944 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.272.098-2.65 0 0 .84-.269 2.75 1.025A9.564 9.564 0 0 1 12 6.84c.851.004 1.707.115 2.506.338 1.907-1.294 2.747-1.025 2.747-1.025.546 1.378.203 2.397.1 2.65.64.699 1.028 1.592 1.028 2.683 0 3.842-2.337 4.687-4.566 4.938.359.31.678.92.678 1.854 0 1.338-.012 2.417-.012 2.748 0 .268.18.577.688.48A10.01 10.01 0 0 0 22 12c0-5.523-4.477-10-10-10Z"/>
+                                    </svg>
+                                </span>
+                                <p class="text-sm font-medium text-stone-900 dark:text-stone-100">GitHub connected successfully</p>
+                            </div>
+                            <button
+                                type="button"
+                                @click="show = false"
+                                class="rounded-full border border-white/10 px-2 py-1 text-xs text-stone-500 transition hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-200"
+                                aria-label="Dismiss GitHub success message"
+                            >
+                                ×
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            @endif
+
             @if(! $githubConnected)
-                <div class="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/45 px-4">
-                    <div class="glass-panel w-full max-w-lg rounded-[26px] p-6">
+                <div x-data="{ open: true }" x-show="open" class="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/45 px-4" style="display: none;">
+                    <div class="glass-panel relative w-full max-w-lg rounded-[26px] p-6">
+                        <button
+                            type="button"
+                            @click="open = false"
+                            class="absolute right-4 top-4 inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-black/5 text-sm text-stone-500 transition hover:border-sb-accent/30 hover:bg-sb-accent/10 hover:text-sb-accent dark:text-stone-400 dark:hover:text-sb-accent"
+                            aria-label="Close GitHub connect prompt"
+                        >
+                            ×
+                        </button>
                         <div class="flex items-center gap-3">
                             <div class="flex h-11 w-11 items-center justify-center rounded-full bg-sb-accent/10 text-sb-accent">
                                 <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -32,11 +76,35 @@
 
             <div class="mt-6 grid gap-6 lg:grid-cols-[1.1fr,0.9fr]">
                 <section class="glass-panel rounded-[26px] p-6">
-                    <div class="flex items-center justify-between gap-3">
-                        <div>
-                            <p class="text-[11px] font-semibold uppercase tracking-[0.32em] text-sb-accent">Connected repos</p>
-                            <h3 class="mt-2 text-lg font-semibold text-stone-900 dark:text-stone-100">Your indexed repositories</h3>
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="space-y-3">
+                            <div>
+                                <p class="text-[11px] font-semibold uppercase tracking-[0.32em] text-sb-accent">Connected repos</p>
+                                <h3 class="mt-2 text-lg font-semibold text-stone-900 dark:text-stone-100">Your indexed repositories</h3>
+                            </div>
+
+                            <div class="flex flex-wrap items-center gap-2">
+                                @if($githubConnected)
+                                    <span class="inline-flex items-center gap-2 rounded-full border border-sb-accent/30 bg-sb-accent/10 px-2.5 py-1 text-[11px] font-medium text-sb-accent">
+                                        <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                            <path d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.866-.013-1.7-2.782.605-3.369-1.341-3.369-1.341-.454-1.156-1.11-1.464-1.11-1.464-.908-.621.069-.608.069-.608 1.004.071 1.532 1.031 1.532 1.031.892 1.53 2.341 1.088 2.91.832.09-.646.35-1.088.636-1.339-2.221-.253-4.555-1.111-4.555-4.944 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.272.098-2.65 0 0 .84-.269 2.75 1.025A9.564 9.564 0 0 1 12 6.84c.851.004 1.707.115 2.506.338 1.907-1.294 2.747-1.025 2.747-1.025.546 1.378.203 2.397.1 2.65.64.699 1.028 1.592 1.028 2.683 0 3.842-2.337 4.687-4.566 4.938.359.31.678.92.678 1.854 0 1.338-.012 2.417-.012 2.748 0 .268.18.577.688.48A10.01 10.01 0 0 0 22 12c0-5.523-4.477-10-10-10Z"/>
+                                        </svg>
+                                        <span class="inline-flex items-center gap-1">
+                                            <span class="h-1.5 w-1.5 rounded-full bg-sb-accent"></span>
+                                            GitHub connected
+                                        </span>
+                                    </span>
+                                @else
+                                    <a href="{{ route('github.connect') }}" class="inline-flex items-center gap-2 rounded-full border border-stone-300/70 bg-black/5 px-2.5 py-1 text-[11px] font-medium text-stone-500 transition hover:border-sb-accent/30 hover:bg-sb-accent/10 hover:text-sb-accent dark:border-white/10 dark:text-stone-400 dark:hover:text-sb-accent">
+                                        <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                            <path d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.866-.013-1.7-2.782.605-3.369-1.341-3.369-1.341-.454-1.156-1.11-1.464-1.11-1.464-.908-.621.069-.608.069-.608 1.004.071 1.532 1.031 1.532 1.031.892 1.53 2.341 1.088 2.91.832.09-.646.35-1.088.636-1.339-2.221-.253-4.555-1.111-4.555-4.944 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.272.098-2.65 0 0 .84-.269 2.75 1.025A9.564 9.564 0 0 1 12 6.84c.851.004 1.707.115 2.506.338 1.907-1.294 2.747-1.025 2.747-1.025.546 1.378.203 2.397.1 2.65.64.699 1.028 1.592 1.028 2.683 0 3.842-2.337 4.687-4.566 4.938.359.31.678.92.678 1.854 0 1.338-.012 2.417-.012 2.748 0 .268.18.577.688.48A10.01 10.01 0 0 0 22 12c0-5.523-4.477-10-10-10Z"/>
+                                        </svg>
+                                        <span>GitHub not connected — click to link</span>
+                                    </a>
+                                @endif
+                            </div>
                         </div>
+
                         <a href="{{ route('github.connect') }}" class="inline-flex items-center gap-2 rounded-xl border border-sb-accent/30 bg-sb-accent/10 px-3 py-2 text-sm font-medium text-sb-accent hover:bg-sb-accent/15">
                             <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                                 <path d="M12 5v14M5 12h14" />
