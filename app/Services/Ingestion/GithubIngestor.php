@@ -49,4 +49,78 @@ class GithubIngestor
 
     }
 
+    public function fetchCommitHistory(string $ownerRepo , int $limit = 50): array{
+
+        $client = new \GuzzleHttp\Client([
+            'base_uri' => 'https://api.github.com/',
+            'headers'  => [
+                'Authorization' => "Bearer {$this->token}",
+                'Accept'        => 'application/vnd.github+json',
+                'User-Agent'    => 'second-brain-app'
+            ],
+        ]);
+
+        // 1. Get the list of recent commits (message, author, sha)
+        $commits = json_decode(
+            $client->get("repos/{$ownerRepo}/commits",[
+                'query' => [
+                    'per_page' => $limit,
+                ]
+            ])->getBody() , true
+        );
+
+        $results = [];
+
+        foreach($commits as $commit){
+
+            $sha = $commit['sha'];
+            $message = $commit['commit']['message'] ?? '';
+            $author = $commit['commit']['author']['name'] ?? 'unknown';
+            $date = $commit['commit']['author']['date'] ?? '';
+
+            // 2. Fetch the individual commit to get its diff/patch.
+            // Retry transient transport failures so one reset connection does not stop the job.
+            $detail = null;
+            $attempts = 0;
+
+            while ($attempts < 3 && $detail === null) {
+                try {
+                    $detail = json_decode(
+                        $client->get("repos/{$ownerRepo}/commits/{$sha}")->getBody(),
+                        true
+                    );
+                } catch (\Exception $e) {
+                    $attempts++;
+                    sleep(3);
+                }
+            }
+
+            if ($detail === null) {
+                continue;
+            }
+
+            $diffSummary = collect($detail['files'] ?? [])
+                    ->map(function ($file){
+                        $patch = $file['patch'] ?? '';
+                        // Cap each file's patch to avoid huge diffs blowing up the chunk
+                        $patch = strlen($patch) > 1500 ? substr($patch, 0, 1500) . "\n...(truncated)" : $patch;
+                        return "File: {$file['filename']} ({$file['status']})\n{$patch}";
+                    })->implode("\n\n");
+
+            $results[$sha] = [
+                'message' => $message,
+                'author'  => $author,
+                'date'    => $date,
+                'diff'    => $diffSummary,
+            ];
+
+            // Be gentle on GitHub's rate limits since this is one extra call per commit
+            usleep(200000);
+
+        }
+
+        return $results;
+
+    }
+
 }

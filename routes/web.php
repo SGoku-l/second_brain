@@ -23,11 +23,18 @@ Route::get('/dashboard', function () {
         ->whereHas('workspace', fn ($query) => $query->where('user_id', $user->id))
         ->orderBy('identifier')
         ->get()
-        ->map(fn ($source) => [
-            'id' => $source->id,
-            'identifier' => $source->identifier,
-            'status' => $source->chunks()->exists() ? 'indexed' : 'indexing',
-        ])
+        ->map(function ($source) {
+            $meta = is_array($source->meta) ? $source->meta : [];
+
+            return [
+                'id' => $source->id,
+                'identifier' => $source->identifier,
+                'status' => $meta['status'] ?? ($source->chunks()->exists() ? 'indexed' : 'indexing'),
+                'error' => $meta['last_error'] ?? null,
+                'commitsFound' => $meta['commits_found'] ?? null,
+                'chunksIndexed' => $meta['chunks_indexed'] ?? null,
+            ];
+        })
         ->values()
         ->all();
 

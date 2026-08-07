@@ -149,7 +149,7 @@
                                     <span>Add repo</span>
                                 </button>
                             @else
-                                
+                                <a
                                     href="{{ route('github.connect') }}"
                                     class="inline-flex items-center gap-2 rounded-xl border border-sb-accent/30 bg-sb-accent/10 px-3 py-2 text-sm font-medium text-sb-accent hover:bg-sb-accent/15"
                                 >
@@ -252,18 +252,43 @@
                         </div>
                     </div>
 
-                    <div class="mt-5 space-y-3">
+                    <div
+                        x-data="repoProgressMonitor({{ collect($repos)->contains('status', 'indexing') ? 'true' : 'false' }})"
+                        class="mt-5 space-y-3"
+                    >
                         @forelse($repos as $repo)
                             <div class="rounded-2xl border border-white/10 bg-black/5 px-4 py-3">
                                 <div class="flex items-center justify-between gap-3">
                                     <div>
                                         <p class="text-sm font-semibold text-stone-900 dark:text-stone-100">{{ $repo['identifier'] }}</p>
                                         <p class="text-xs text-stone-500 dark:text-stone-400">Source id: {{ $repo['id'] }}</p>
+                                        @if($repo['status'] === 'error' && ! empty($repo['error']))
+                                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $repo['error'] }}</p>
+                                        @elseif($repo['status'] === 'indexed' && $repo['commitsFound'] === 0)
+                                            <p class="mt-1 text-xs text-stone-500 dark:text-stone-400">No commit details were returned during the last sync.</p>
+                                        @elseif($repo['status'] === 'indexing' && $repo['chunksIndexed'] !== null)
+                                            <p class="mt-1 text-xs text-stone-500 dark:text-stone-400">{{ $repo['chunksIndexed'] }} chunks indexed so far.</p>
+                                        @endif
                                     </div>
-                                    <span class="rounded-full bg-sb-accent/10 px-2.5 py-1 text-[11px] font-medium text-sb-accent">
+                                    <span @class([
+                                        'rounded-full px-2.5 py-1 text-[11px] font-medium',
+                                        'bg-red-500/10 text-red-600 dark:text-red-400' => $repo['status'] === 'error',
+                                        'bg-sb-accent/10 text-sb-accent' => $repo['status'] !== 'error',
+                                    ])>
                                         {{ ucfirst($repo['status']) }}
                                     </span>
                                 </div>
+
+                                @if($repo['status'] === 'indexing')
+                                    <div
+                                        class="mt-3 h-1.5 overflow-hidden rounded-full bg-stone-200/70 dark:bg-white/10"
+                                        role="progressbar"
+                                        aria-label="Repository indexing is in progress"
+                                        aria-valuetext="Indexing in progress"
+                                    >
+                                        <div class="h-full w-2/5 rounded-full bg-sb-accent animate-pulse"></div>
+                                    </div>
+                                @endif
                             </div>
                         @empty
                             <div class="rounded-2xl border border-dashed border-stone-300 bg-black/5 px-4 py-8 text-center text-sm text-stone-500 dark:border-white/10 dark:text-stone-400">

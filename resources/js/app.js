@@ -29,4 +29,16 @@ Alpine.data('themeController', () => ({
     },
 }));
 
+Alpine.data('repoProgressMonitor', (isIndexing) => ({
+    init() {
+        if (!isIndexing) {
+            return;
+        }
+
+        setInterval(() => {
+            window.location.reload();
+        }, 10000);
+    },
+}));
+
 Alpine.start();

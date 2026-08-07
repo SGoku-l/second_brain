@@ -95,6 +95,15 @@ class RepoController extends Controller
                 ]
             );
 
+            $source->update([
+                'meta' => array_merge($source->meta ?? [], [
+                    'source' => 'github',
+                    'status' => 'indexing',
+                    'last_error' => null,
+                    'last_started_at' => now()->toIso8601String(),
+                ]),
+            ]);
+
             dispatch(new IngestRepoJob($source->id, $repoFullName));
             $count++;
         }
