@@ -25,6 +25,13 @@
         </div>
 
         <div class="flex items-center gap-3">
+            @if(Auth::user()->active_status)
+                <span class="inline-flex items-center gap-1.5 text-xs font-medium text-sb-accent" title="Online">
+                    <span class="h-2 w-2 rounded-full bg-sb-accent"></span>
+                    Online
+                </span>
+            @endif
+
             <button @click="toggleTheme()" class="theme-toggle-track" role="switch" :aria-checked="darkMode" aria-label="Toggle dark mode">
                 <span class="theme-toggle-thumb">
                     <svg class="theme-icon theme-icon-sun" fill="currentColor" viewBox="0 0 20 20">

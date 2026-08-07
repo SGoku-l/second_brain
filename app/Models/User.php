@@ -23,7 +23,8 @@ class User extends Authenticatable
         'email',
         'password',
         'github_token',
-        'api_token'
+        'api_token',
+        'active_status',
     ];
 
     /**
@@ -46,6 +47,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'active_status' => 'boolean',
         ];
     }
 }

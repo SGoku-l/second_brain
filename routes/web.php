@@ -14,6 +14,11 @@ Route::get('/', function () {
 
 Route::get('/dashboard', function () {
     $user = auth()->user();
+
+    if (! $user->active_status) {
+        $user->update(['active_status' => true]);
+    }
+
     Workspace::firstOrCreate([
         'user_id' => $user->id,
         'name' => 'Default',
