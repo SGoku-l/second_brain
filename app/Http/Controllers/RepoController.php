@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\SubscriptionLimitExceeded;
 use App\Jobs\IngestRepoJob;
 use App\Models\Source;
 use App\Models\Workspace;
 use GuzzleHttp\Client;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Services\Subscriptions\SubscriptionLimits;
 
 class RepoController extends Controller
 {
@@ -61,7 +63,7 @@ class RepoController extends Controller
         ]);
     }
 
-    public function ingest(Request $request)
+    public function ingest(Request $request, SubscriptionLimits $limits)
     {
         $validated = $request->validate([
             'repo_full_names' => ['required', 'array'],
@@ -78,6 +80,12 @@ class RepoController extends Controller
             ->unique()
             ->values()
             ->all();
+
+        try {
+            $limits->ensureCanAddRepositories($request->user(), $selected);
+        } catch (SubscriptionLimitExceeded $e) {
+            return redirect('/dashboard')->with('limit_error', $e->getMessage());
+        }
 
         $count = 0;
 

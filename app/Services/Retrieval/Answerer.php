@@ -22,7 +22,7 @@ class Answerer
         ]);
     }
 
-    public function answer(string $question, array $chunks): string
+    public function answer(string $question, array $chunks): array
     {
         $context = collect($chunks)
             ->map(fn ($c) => "File: {$c->file_path}\n{$c->content}")
@@ -45,7 +45,10 @@ class Answerer
 
             $data = json_decode($response->getBody(), true);
 
-            return $data['candidates'][0]['content']['parts'][0]['text'] ?? 'No answer generated.';
+            return [
+                'answer' => $data['candidates'][0]['content']['parts'][0]['text'] ?? 'No answer generated.',
+                'tokens' => (int) ($data['usageMetadata']['totalTokenCount'] ?? 0),
+            ];
 
         } catch (ClientException $e) {
             $status = $e->getResponse()->getStatusCode();

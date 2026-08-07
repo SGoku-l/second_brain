@@ -1,4 +1,14 @@
 <x-app-layout>
+    @php($limitMessage = session('limit_error') ?? collect($repos)->firstWhere('status', 'limit_reached')['error'] ?? null)
+    @if($limitMessage)
+        <div x-data="{ open: true }" x-show="open" x-cloak class="fixed inset-0 z-[300] flex items-center justify-center bg-black/60 px-4" role="alertdialog" aria-modal="true">
+            <div class="glass-panel w-full max-w-md rounded-[26px] p-6 text-center">
+                <p class="text-lg font-semibold text-stone-900 dark:text-stone-100">Plan limit reached</p>
+                <p class="mt-3 text-sm text-stone-600 dark:text-stone-400">{{ $limitMessage }}</p>
+                <button type="button" @click="open = false" class="mt-5 rounded-xl bg-sb-accent px-4 py-2 text-sm font-semibold text-sb-bg-dark">Okay</button>
+            </div>
+        </div>
+    @endif
     <div x-data="themeController()" class="min-h-screen transition-colors duration-theme">
         <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
             @include('components.sb-topbar')
@@ -99,6 +109,18 @@
                                 Continue to chat
                             </a>
                         </div>
+                    </div>
+                </div>
+            @endif
+
+            @if($githubConnected && (! $subscription || $subscription->status !== 'active' || ! $subscription->current_period_end?->isFuture()))
+                <div x-data="{ open: true }" x-show="open" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/45 px-4">
+                    <div class="glass-panel relative w-full max-w-lg rounded-[26px] p-6">
+                        <button type="button" @click="open = false" class="absolute right-4 top-4 rounded-full border border-white/10 px-2 py-1 text-sm text-stone-500" aria-label="Close plan prompt">×</button>
+                        <p class="text-[11px] font-semibold uppercase tracking-[0.32em] text-sb-accent">Choose a plan</p>
+                        <h3 class="mt-2 text-lg font-semibold text-stone-900 dark:text-stone-100">Activate your Second Brain</h3>
+                        <p class="mt-2 text-sm text-stone-600 dark:text-stone-400">Your GitHub account is connected. Select a plan to start indexing repositories and using chat.</p>
+                        <a href="{{ route('plans.index') }}" class="mt-6 inline-flex rounded-xl bg-sb-accent px-4 py-2 text-sm font-semibold text-sb-bg-dark">View plans</a>
                     </div>
                 </div>
             @endif
@@ -262,7 +284,7 @@
                                     <div>
                                         <p class="text-sm font-semibold text-stone-900 dark:text-stone-100">{{ $repo['identifier'] }}</p>
                                         <p class="text-xs text-stone-500 dark:text-stone-400">Source id: {{ $repo['id'] }}</p>
-                                        @if($repo['status'] === 'error' && ! empty($repo['error']))
+                                        @if(in_array($repo['status'], ['error', 'limit_reached'], true) && ! empty($repo['error']))
                                             <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $repo['error'] }}</p>
                                         @elseif($repo['status'] === 'indexed' && $repo['commitsFound'] === 0)
                                             <p class="mt-1 text-xs text-stone-500 dark:text-stone-400">No commit details were returned during the last sync.</p>
@@ -272,8 +294,8 @@
                                     </div>
                                     <span @class([
                                         'rounded-full px-2.5 py-1 text-[11px] font-medium',
-                                        'bg-red-500/10 text-red-600 dark:text-red-400' => $repo['status'] === 'error',
-                                        'bg-sb-accent/10 text-sb-accent' => $repo['status'] !== 'error',
+                                        'bg-red-500/10 text-red-600 dark:text-red-400' => in_array($repo['status'], ['error', 'limit_reached'], true),
+                                        'bg-sb-accent/10 text-sb-accent' => ! in_array($repo['status'], ['error', 'limit_reached'], true),
                                     ])>
                                         {{ ucfirst($repo['status']) }}
                                     </span>
@@ -299,7 +321,20 @@
                 </section>
 
                 <section class="glass-panel rounded-[26px] p-6">
-                    <p class="text-[11px] font-semibold uppercase tracking-[0.32em] text-sb-accent">Quick actions</p>
+                    <p class="text-[11px] font-semibold uppercase tracking-[0.32em] text-sb-accent">Subscription</p>
+                    <div class="mt-4 rounded-2xl border border-white/10 bg-black/5 p-4">
+                        <div class="flex items-start justify-between gap-3">
+                            <div>
+                                <p class="font-semibold text-stone-900 dark:text-stone-100">{{ $subscription?->plan?->name ?? 'No active plan' }}</p>
+                                <p class="mt-1 font-mono text-xs text-stone-500 dark:text-stone-400">{{ number_format($subscription?->tokens_used_current_period ?? 0) }} / {{ number_format($subscription?->plan?->monthly_token_limit ?? 0) }} tokens</p>
+                                <p class="mt-1 font-mono text-xs text-stone-500 dark:text-stone-400">{{ number_format($subscription?->storage_used_mb ?? 0) }} / {{ number_format($subscription?->plan?->storage_limit_mb ?? 0) }} MB storage</p>
+                            </div>
+                            <a href="{{ route('plans.index') }}" class="rounded-xl border border-sb-accent/30 px-3 py-1.5 text-xs font-semibold text-sb-accent hover:bg-sb-accent/10">Upgrade</a>
+                        </div>
+                        <p class="mt-3 text-xs text-stone-500 dark:text-stone-400">Expairy at: {{ $subscription?->current_period_end?->format('M j, Y') ?? 'Choose a plan' }}</p>
+                    </div>
+
+                    <p class="mt-6 text-[11px] font-semibold uppercase tracking-[0.32em] text-sb-accent">Quick actions</p>
                     <div class="mt-4 space-y-3">
                         <a href="{{ route('chat.index') }}" class="flex items-center justify-between rounded-2xl border border-white/10 bg-black/5 px-4 py-3 text-sm font-medium text-stone-700 hover:bg-black/10 dark:text-stone-200 dark:hover:bg-white/5">
                             <span>Open chat</span>

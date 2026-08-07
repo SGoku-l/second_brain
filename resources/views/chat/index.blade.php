@@ -1,4 +1,11 @@
 <x-chat-layout>
+    <div x-data="{ open: false, message: '' }" @subscription-limit.window="message = $event.detail; open = true" x-show="open" x-cloak class="fixed inset-0 z-[300] flex items-center justify-center bg-black/60 px-4" role="alertdialog" aria-modal="true">
+        <div class="glass-panel w-full max-w-md rounded-[26px] p-6 text-center">
+            <p class="text-lg font-semibold text-stone-900 dark:text-stone-100">Plan limit reached</p>
+            <p class="mt-3 text-sm text-stone-600 dark:text-stone-400" x-text="message"></p>
+            <button type="button" @click="open = false" class="mt-5 rounded-xl bg-sb-accent px-4 py-2 text-sm font-semibold text-sb-bg-dark">Okay</button>
+        </div>
+    </div>
     <div
         x-data="secondBrainChat({
             repos: {{ Js::from($repos) }},

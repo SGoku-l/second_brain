@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Source;
+use App\Exceptions\SubscriptionLimitExceeded;
 use App\Services\Retrieval\Answerer;
 use App\Services\Retrieval\Retriever;
+use App\Services\Subscriptions\SubscriptionLimits;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -18,7 +20,7 @@ class ChatController extends Controller
         ]);
     }
 
-    public function ask(Request $request): View|JsonResponse
+    public function ask(Request $request, SubscriptionLimits $limits): View|JsonResponse
     {
         $request->validate([
             'question' => 'required|string|max:1000',
@@ -27,6 +29,15 @@ class ChatController extends Controller
         ]);
 
         $user = auth()->user();
+        try {
+            $limits->ensureCanUseTokens($user);
+        } catch (SubscriptionLimitExceeded $e) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $e->getMessage()], 429);
+            }
+
+            return redirect()->route('chat.index')->with('limit_error', $e->getMessage());
+        }
         $retriever = new Retriever();
         $sourceIds = $request->input('repos', []);
         $results = $retriever->search($request->question, $user->id, 5, $sourceIds);
@@ -36,7 +47,9 @@ class ChatController extends Controller
 
         try {
             $answerer = new Answerer();
-            $answer = $answerer->answer($request->question, $results);
+            $response = $answerer->answer($request->question, $results);
+            $answer = $response['answer'];
+            $limits->recordTokens($user, $response['tokens']);
         } catch (\Exception $e) {
             $error = 'Answer generation is temporarily unavailable, but here are the relevant files found.';
         }

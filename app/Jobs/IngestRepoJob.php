@@ -2,12 +2,14 @@
 
 namespace App\Jobs;
 
+use App\Exceptions\SubscriptionLimitExceeded;
 use App\Models\Chunks;
 use App\Models\Source;
 use App\Services\ErrorLogger;
 use App\Services\Ingestion\Chunker;
 use App\Services\Ingestion\Embedder;
 use App\Services\Ingestion\GithubIngestor;
+use App\Services\Subscriptions\SubscriptionLimits;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -29,7 +31,7 @@ class IngestRepoJob implements ShouldQueue
         //
     }
 
-    public function handle(ErrorLogger $errorLogger): void
+    public function handle(ErrorLogger $errorLogger, SubscriptionLimits $limits): void
     {
         $source = Source::find($this->sourceId);
 
@@ -124,6 +126,14 @@ class IngestRepoJob implements ShouldQueue
                         continue;
                     }
 
+                    try {
+                        $limits->reserveStorage($user, strlen($piece));
+                    } catch (SubscriptionLimitExceeded $e) {
+                        $this->markLimitReached($source, $e->getMessage());
+
+                        return;
+                    }
+
                     $chunk = Chunks::create([
                         'source_id' => $source->id,
                         'file_path' => $path,
@@ -209,6 +219,14 @@ class IngestRepoJob implements ShouldQueue
                         continue;
                     }
 
+                    try {
+                        $limits->reserveStorage($user, strlen($piece));
+                    } catch (SubscriptionLimitExceeded $e) {
+                        $this->markLimitReached($source, $e->getMessage());
+
+                        return;
+                    }
+
                     $chunk = Chunks::create([
                         'source_id' => $source->id,
                         'file_path' => $path,
@@ -277,6 +295,18 @@ class IngestRepoJob implements ShouldQueue
             'source_id' => $source->id,
             'reason' => $reason,
             'exception' => $exception,
+        ]);
+    }
+
+    private function markLimitReached(Source $source, string $reason): void
+    {
+        $source->update([
+            'meta' => array_merge($source->meta ?? [], [
+                'source' => 'github',
+                'status' => 'limit_reached',
+                'last_error' => $reason,
+                'last_failed_at' => now()->toIso8601String(),
+            ]),
         ]);
     }
 

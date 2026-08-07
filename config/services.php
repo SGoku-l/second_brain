@@ -38,11 +38,16 @@ return [
     'github' => [
         'client_id' => env('GITHUB_CLIENT_ID'),
         'client_secret' => env('GITHUB_CLIENT_SECRET'),
-        'redirect' => env('GITHUB_REDIRECT_URI')
+        'redirect' => env('GITHUB_REDIRECT_URI'),
     ],
 
     'gemini' => [
         'api_key' => env('GEMINI_API_KEY'),
-    ]
+    ],
+
+    'razorpay' => [
+        'key_id' => env('RAZORPAY_KEY_ID'),
+        'key_secret' => env('RAZORPAY_KEY_SECRET'),
+    ],
 
 ];

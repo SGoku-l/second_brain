@@ -163,6 +163,11 @@ document.addEventListener('alpine:init', () => {
                 const data = await response.json();
 
                 if (!response.ok) {
+                    if (response.status === 429) {
+                        window.dispatchEvent(new CustomEvent('subscription-limit', {
+                            detail: data.message || 'Your subscription limit has been reached.',
+                        }));
+                    }
                     throw new Error(data.message || 'Something went wrong.');
                 }
 

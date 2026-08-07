@@ -1,9 +1,14 @@
 <?php
 
+use App\Http\Controllers\Admin\BillingController;
+use App\Http\Controllers\Admin\TransactionController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\ChatController;
+use App\Http\Controllers\PlansController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\RazorpayWebhookController;
 use App\Http\Controllers\RepoController;
+use App\Http\Middleware\EnsureSubscriptionActive;
 use App\Http\Middleware\EnsureUserIsAdmin;
 use App\Models\Source;
 use App\Models\Workspace;
@@ -48,6 +53,7 @@ Route::get('/dashboard', function () {
     return view('dashboard', [
         'githubConnected' => ! empty($user->github_token),
         'repos' => $repos,
+        'subscription' => $user->subscription?->load('plan'),
     ]);
 })->middleware(['auth', 'verified'])->name('dashboard');
 
@@ -66,7 +72,19 @@ Route::middleware(['auth', 'verified', EnsureUserIsAdmin::class])
         Route::get('/users', 'users')->name('users');
         Route::get('/users/{user}', 'showUser')->name('users.show');
         Route::get('/errors', 'errors')->name('errors');
+        Route::get('/transactions', [TransactionController::class, 'index'])->name('transactions.index');
+        Route::get('/settings', [BillingController::class, 'settings'])->name('settings');
+        Route::post('/plans', [BillingController::class, 'storePlan'])->name('plans.store');
+        Route::put('/plans/{plan}', [BillingController::class, 'updatePlan'])->name('plans.update');
+        Route::patch('/plans/{plan}/deactivate', [BillingController::class, 'deactivatePlan'])->name('plans.deactivate');
     });
+
+Route::post('/razorpay/webhook', RazorpayWebhookController::class)->name('razorpay.webhook');
+
+Route::middleware('auth')->group(function () {
+    Route::get('/plans', [PlansController::class, 'index'])->name('plans.index');
+    Route::post('/plans/{plan}/checkout', [PlansController::class, 'checkout'])->name('plans.checkout');
+});
 
 Route::middleware('auth')->prefix('auth/github')->group(function () {
 
@@ -83,7 +101,7 @@ Route::middleware('auth')->prefix('auth/github')->group(function () {
 
 });
 
-Route::middleware('auth')->controller(ChatController::class)->group(function () {
+Route::middleware(['auth', EnsureSubscriptionActive::class])->controller(ChatController::class)->group(function () {
 
     Route::get('/chat', 'index')->name('chat.index');
 
@@ -96,10 +114,10 @@ Route::middleware('auth')->group(function () {
         return view('mcp.connect', [
             'apiToken' => auth()->user()->api_token,
         ]);
-    })->name('mcp.connect');
+    })->middleware(EnsureSubscriptionActive::class)->name('mcp.connect');
 
     Route::get('/repos/available', [RepoController::class, 'available'])->name('repos.available');
-    Route::post('/repos/ingest', [RepoController::class, 'ingest'])->name('repos.ingest');
+    Route::post('/repos/ingest', [RepoController::class, 'ingest'])->middleware(EnsureSubscriptionActive::class)->name('repos.ingest');
 });
 
 require __DIR__.'/auth.php';

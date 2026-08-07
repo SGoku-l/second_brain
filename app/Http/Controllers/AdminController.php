@@ -44,6 +44,8 @@ class AdminController extends Controller
             'user' => $user,
             'sources' => $sources,
             'chunkCount' => $sources->sum('chunks_count'),
+            'repoCount' => $sources->count(),
+            'subscription' => $user->subscription?->load('plan'),
         ]);
     }
 

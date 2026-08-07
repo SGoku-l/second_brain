@@ -5,43 +5,52 @@ namespace App\Http\Controllers;
 use App\Models\Source;
 use App\Models\User;
 use App\Services\Retrieval\Retriever;
+use App\Services\Subscriptions\SubscriptionAccess;
 use Illuminate\Http\Request;
 
 class McpController extends Controller
 {
-
-    public function handle(Request $request){
+    public function handle(Request $request, SubscriptionAccess $subscriptions)
+    {
 
         $token = $request->bearerToken();
-        $user  = User::where('api_token' , $token)->first();
+        $user = User::where('api_token', $token)->first();
 
-        if(!$user){
+        if (! $user) {
 
             return response()->json([
                 'jsonrpc' => '2.0',
-                'id'      => $request->input('id'),
-                'error'   => [
-                    'code'    => -32600,
-                    'message' => 'Unauthorized'
+                'id' => $request->input('id'),
+                'error' => [
+                    'code' => -32600,
+                    'message' => 'Unauthorized',
                 ],
-            ],401);
+            ], 401);
 
         }
 
-        $method = $request->input('method');
-        $id     = $request->input('id');
+        if (! $subscriptions->allows($user)) {
+            return response()->json([
+                'jsonrpc' => '2.0',
+                'id' => $request->input('id'),
+                'error' => ['code' => -32001, 'message' => 'An active subscription is required.'],
+            ], 403);
+        }
 
-        return match($method){
+        $method = $request->input('method');
+        $id = $request->input('id');
+
+        return match ($method) {
 
             'initialize' => $this->initialize($id),
             'tools/list' => $this->toolsList($id),
-            'tools/call' => $this->toolsCall($id , $request->input('params') , $user),
+            'tools/call' => $this->toolsCall($id, $request->input('params'), $user),
             default => response()->json([
                 'jsonrpc' => '2.0',
-                'id'      => $id,
-                'error'   => [
-                    'code'    => -32601,
-                    'message' => 'Method not found'
+                'id' => $id,
+                'error' => [
+                    'code' => -32601,
+                    'message' => 'Method not found',
                 ],
             ]),
 
@@ -49,18 +58,19 @@ class McpController extends Controller
 
     }
 
-    protected function initialize($id){
+    protected function initialize($id)
+    {
 
         return response()->json([
             'jsonrpc' => '2.0',
             'id' => $id,
             'result' => [
                 'protocolVersion' => '2024-11-05',
-                'capabilities' => ['tools' => new \stdClass()],
+                'capabilities' => ['tools' => new \stdClass],
                 'serverInfo' => ['name' => 'second-brain', 'version' => '0.1.0'],
             ],
         ]);
-        
+
     }
 
     protected function toolsList($id)
@@ -77,11 +87,11 @@ class McpController extends Controller
                             'type' => 'object',
                             'properties' => [
                                 'query' => [
-                                    'type' => 'string', 'description' => 'The question or topic to search for'
+                                    'type' => 'string', 'description' => 'The question or topic to search for',
                                 ],
                                 'repo' => [
                                     'type' => 'string',
-                                    'description' => 'Optional: limit the search to one repo identifier (for example owner/repo). Omit to search all connected repos.'
+                                    'description' => 'Optional: limit the search to one repo identifier (for example owner/repo). Omit to search all connected repos.',
                                 ],
                             ],
                             'required' => ['query'],
@@ -92,7 +102,7 @@ class McpController extends Controller
                         'description' => 'List all repositories connected to the user\'s second brain.',
                         'inputSchema' => [
                             'type' => 'object',
-                            'properties' => new \stdClass(),
+                            'properties' => new \stdClass,
                         ],
                     ],
                 ],
@@ -130,7 +140,7 @@ class McpController extends Controller
         }
 
         $sourceIds = $this->resolveSourceIds($user, $repo);
-        $retriever = new Retriever();
+        $retriever = new Retriever;
         $results = $retriever->search($query, $user->id, 5, $sourceIds);
 
         $text = collect($results)
@@ -182,5 +192,4 @@ class McpController extends Controller
             ->pluck('id')
             ->toArray();
     }
-
 }
