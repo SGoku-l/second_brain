@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\Chunks;
 use App\Models\Source;
+use App\Services\ErrorLogger;
 use App\Services\Ingestion\Chunker;
 use App\Services\Ingestion\Embedder;
 use App\Services\Ingestion\GithubIngestor;
@@ -28,7 +29,7 @@ class IngestRepoJob implements ShouldQueue
         //
     }
 
-    public function handle(): void
+    public function handle(ErrorLogger $errorLogger): void
     {
         $source = Source::find($this->sourceId);
 
@@ -44,7 +45,7 @@ class IngestRepoJob implements ShouldQueue
         $user = $source->workspace?->user;
 
         if (! $user || ! $user->github_token) {
-            $this->markFailed($source, 'GitHub is not connected for this workspace.');
+            $this->markFailed($source, 'GitHub is not connected for this workspace.', null, $errorLogger);
 
             return;
         }
@@ -60,8 +61,8 @@ class IngestRepoJob implements ShouldQueue
             $token = decrypt($user->github_token);
             $ingestor = new GithubIngestor($token);
             $files = $ingestor->fetchRepoFiles($this->repoFullName);
-            $chunker = new Chunker();
-            $embedder = new Embedder();
+            $chunker = new Chunker;
+            $embedder = new Embedder;
 
             Log::info('Repository files fetched for ingestion.', [
                 'repository' => $this->repoFullName,
@@ -70,66 +71,74 @@ class IngestRepoJob implements ShouldQueue
             ]);
 
             foreach ($files as $path => $content) {
-            if (trim($content) === '') {
-                continue;
-            }
-
-            $alreadyIngested = Chunks::query()
-                ->where('source_id', $source->id)
-                ->where('file_path', $path)
-                ->exists();
-
-            if ($alreadyIngested) {
-                continue;
-            }
-
-            $pieces = $chunker->chunk($content);
-
-            foreach ($pieces as $piece) {
-                $embedding = null;
-                $attempts = 0;
-
-                while ($attempts < 3 && $embedding === null) {
-                    try {
-                        $embedding = $embedder->embed($piece);
-                    } catch (\Exception $e) {
-                        $attempts++;
-
-                        Log::warning('Repository embedding attempt failed.', [
-                            'repository' => $this->repoFullName,
-                            'source_id' => $source->id,
-                            'path' => $path,
-                            'attempt' => $attempts,
-                            'reason' => $e->getMessage(),
-                        ]);
-
-                        if (str_contains($e->getMessage(), '429')) {
-                            sleep(20);
-                        } else {
-                            break;
-                        }
-                    }
-                }
-
-                if ($embedding === null) {
+                if (trim($content) === '') {
                     continue;
                 }
 
-                $chunk = Chunks::create([
-                    'source_id' => $source->id,
-                    'file_path' => $path,
-                    'content' => $piece,
-                ]);
+                $alreadyIngested = Chunks::query()
+                    ->where('source_id', $source->id)
+                    ->where('file_path', $path)
+                    ->exists();
 
-                DB::statement('UPDATE chunks SET embedding = ? WHERE id = ?', [
-                    '[' . implode(',', $embedding) . ']',
-                    $chunk->id,
-                ]);
+                if ($alreadyIngested) {
+                    continue;
+                }
 
-                $chunksIndexed++;
-                $this->reportProgress($source, $chunksIndexed, 'files');
-                usleep(500000);
-            }
+                $pieces = $chunker->chunk($content);
+
+                foreach ($pieces as $piece) {
+                    $embedding = null;
+                    $attempts = 0;
+
+                    while ($attempts < 3 && $embedding === null) {
+                        try {
+                            $embedding = $embedder->embed($piece);
+                        } catch (\Exception $e) {
+                            $attempts++;
+
+                            Log::warning('Repository embedding attempt failed.', [
+                                'repository' => $this->repoFullName,
+                                'source_id' => $source->id,
+                                'path' => $path,
+                                'attempt' => $attempts,
+                                'reason' => $errorLogger->sanitize($e->getMessage()),
+                            ]);
+                            $errorLogger->log('warning', 'Repository embedding attempt failed.', [
+                                'user_id' => $user->id,
+                                'repository' => $this->repoFullName,
+                                'source_id' => $source->id,
+                                'path' => $path,
+                                'attempt' => $attempts,
+                                'exception' => $e,
+                            ]);
+
+                            if (str_contains($e->getMessage(), '429')) {
+                                sleep(20);
+                            } else {
+                                break;
+                            }
+                        }
+                    }
+
+                    if ($embedding === null) {
+                        continue;
+                    }
+
+                    $chunk = Chunks::create([
+                        'source_id' => $source->id,
+                        'file_path' => $path,
+                        'content' => $piece,
+                    ]);
+
+                    DB::statement('UPDATE chunks SET embedding = ? WHERE id = ?', [
+                        '['.implode(',', $embedding).']',
+                        $chunk->id,
+                    ]);
+
+                    $chunksIndexed++;
+                    $this->reportProgress($source, $chunksIndexed, 'files');
+                    usleep(500000);
+                }
             }
 
             $commits = $ingestor->fetchCommitHistory($this->repoFullName);
@@ -141,73 +150,81 @@ class IngestRepoJob implements ShouldQueue
             ]);
 
             foreach ($commits as $sha => $commitData) {
-            $path = "commit:{$sha}";
+                $path = "commit:{$sha}";
 
-            $alreadyIngested = Chunks::query()
-                ->where('source_id', $source->id)
-                ->where('file_path', $path)
-                ->exists();
+                $alreadyIngested = Chunks::query()
+                    ->where('source_id', $source->id)
+                    ->where('file_path', $path)
+                    ->exists();
 
-            if ($alreadyIngested) {
-                continue;
-            }
-
-            $content = "Commit by {$commitData['author']} on {$commitData['date']}\n\n"
-                . "Message: {$commitData['message']}\n\n"
-                . "Changes:\n{$commitData['diff']}";
-
-            if (trim($content) === '') {
-                continue;
-            }
-
-            $pieces = $chunker->chunk($content);
-
-            foreach ($pieces as $piece) {
-                $embedding = null;
-                $attempts = 0;
-
-                while ($attempts < 3 && $embedding === null) {
-                    try {
-                        $embedding = $embedder->embed($piece);
-                    } catch (\Exception $e) {
-                        $attempts++;
-
-                        Log::warning('Repository embedding attempt failed.', [
-                            'repository' => $this->repoFullName,
-                            'source_id' => $source->id,
-                            'path' => $path,
-                            'attempt' => $attempts,
-                            'reason' => $e->getMessage(),
-                        ]);
-
-                        if (str_contains($e->getMessage(), '429')) {
-                            sleep(20);
-                        } else {
-                            break;
-                        }
-                    }
-                }
-
-                if ($embedding === null) {
+                if ($alreadyIngested) {
                     continue;
                 }
 
-                $chunk = Chunks::create([
-                    'source_id' => $source->id,
-                    'file_path' => $path,
-                    'content' => $piece,
-                    'content_type' => 'commit',
-                ]);
+                $content = "Commit by {$commitData['author']} on {$commitData['date']}\n\n"
+                    ."Message: {$commitData['message']}\n\n"
+                    ."Changes:\n{$commitData['diff']}";
 
-                DB::statement('UPDATE chunks SET embedding = ? WHERE id = ?', [
-                    '[' . implode(',', $embedding) . ']',
-                    $chunk->id,
-                ]);
+                if (trim($content) === '') {
+                    continue;
+                }
 
-                $chunksIndexed++;
-                $this->reportProgress($source, $chunksIndexed, 'commits');
-                usleep(500000);
-            }
+                $pieces = $chunker->chunk($content);
+
+                foreach ($pieces as $piece) {
+                    $embedding = null;
+                    $attempts = 0;
+
+                    while ($attempts < 3 && $embedding === null) {
+                        try {
+                            $embedding = $embedder->embed($piece);
+                        } catch (\Exception $e) {
+                            $attempts++;
+
+                            Log::warning('Repository embedding attempt failed.', [
+                                'repository' => $this->repoFullName,
+                                'source_id' => $source->id,
+                                'path' => $path,
+                                'attempt' => $attempts,
+                                'reason' => $errorLogger->sanitize($e->getMessage()),
+                            ]);
+                            $errorLogger->log('warning', 'Repository embedding attempt failed.', [
+                                'user_id' => $user->id,
+                                'repository' => $this->repoFullName,
+                                'source_id' => $source->id,
+                                'path' => $path,
+                                'attempt' => $attempts,
+                                'exception' => $e,
+                            ]);
+
+                            if (str_contains($e->getMessage(), '429')) {
+                                sleep(20);
+                            } else {
+                                break;
+                            }
+                        }
+                    }
+
+                    if ($embedding === null) {
+                        continue;
+                    }
+
+                    $chunk = Chunks::create([
+                        'source_id' => $source->id,
+                        'file_path' => $path,
+                        'content' => $piece,
+                        'content_type' => 'commit',
+                    ]);
+
+                    DB::statement('UPDATE chunks SET embedding = ? WHERE id = ?', [
+                        '['.implode(',', $embedding).']',
+                        $chunk->id,
+                    ]);
+
+                    $chunksIndexed++;
+                    $this->reportProgress($source, $chunksIndexed, 'commits');
+                    usleep(500000);
+                }
             }
 
             $source->update([
@@ -231,12 +248,14 @@ class IngestRepoJob implements ShouldQueue
                 'commits_found' => count($commits),
             ]);
         } catch (\Throwable $e) {
-            $this->markFailed($source, $e->getMessage(), $e);
+            $this->markFailed($source, $e->getMessage(), $e, $errorLogger);
         }
     }
 
-    private function markFailed(Source $source, string $reason, ?\Throwable $exception = null): void
+    private function markFailed(Source $source, string $reason, ?\Throwable $exception, ErrorLogger $errorLogger): void
     {
+        $reason = $errorLogger->sanitize($reason);
+
         $source->update([
             'meta' => array_merge($source->meta ?? [], [
                 'source' => 'github',
@@ -251,6 +270,13 @@ class IngestRepoJob implements ShouldQueue
             'source_id' => $source->id,
             'reason' => $reason,
             'exception' => $exception ? $exception::class : null,
+        ]);
+        $errorLogger->log('error', 'Repository ingestion failed.', [
+            'user_id' => $source->workspace?->user_id,
+            'repository' => $this->repoFullName,
+            'source_id' => $source->id,
+            'reason' => $reason,
+            'exception' => $exception,
         ]);
     }
 

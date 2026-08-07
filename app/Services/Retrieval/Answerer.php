@@ -1,20 +1,23 @@
 <?php
 
 namespace App\Services\Retrieval;
+
+use App\Services\ErrorLogger;
 use GuzzleHttp\Client;
+use GuzzleHttp\Exception\ClientException;
+use Illuminate\Support\Facades\Log;
 
 class Answerer
 {
     /**
      * Create a new class instance.
      */
-
     protected Client $client;
 
     public function __construct()
     {
         $this->client = new Client([
-            "base_uri" => "https://generativelanguage.googleapis.com/v1beta/",
+            'base_uri' => 'https://generativelanguage.googleapis.com/v1beta/',
             'timeout' => 15,
         ]);
     }
@@ -41,15 +44,25 @@ class Answerer
             );
 
             $data = json_decode($response->getBody(), true);
+
             return $data['candidates'][0]['content']['parts'][0]['text'] ?? 'No answer generated.';
 
-        } catch (\GuzzleHttp\Exception\ClientException $e) {
+        } catch (ClientException $e) {
             $status = $e->getResponse()->getStatusCode();
+            Log::warning('Answer generation request failed.', [
+                'status' => $status,
+                'exception' => $e::class,
+            ]);
+            app(ErrorLogger::class)->log('warning', 'Answer generation request failed.', [
+                'user_id' => auth()->id(),
+                'source_id' => data_get($chunks, '0.source_id'),
+                'status' => $status,
+                'exception' => $e,
+            ]);
             if ($status === 429) {
                 throw new \Exception('Rate limit reached — try again in a bit.');
             }
-            throw new \Exception('Answer generation failed: ' . $e->getMessage());
+            throw new \Exception('Answer generation failed: '.$e->getMessage());
         }
     }
-
 }

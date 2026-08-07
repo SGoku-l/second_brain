@@ -6,16 +6,30 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class Chunks extends Model
+class ErrorLog extends Model
 {
     use HasUuids;
 
+    public const UPDATED_AT = null;
+
     protected $fillable = [
+        'user_id',
         'source_id',
-        'file_path',
-        'content',
-        'content_type',
+        'level',
+        'message',
+        'context',
+        'exception_class',
     ];
+
+    protected function casts(): array
+    {
+        return ['context' => 'array'];
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
 
     public function source(): BelongsTo
     {

@@ -1,0 +1,8 @@
+<x-admin-layout title="Users">
+    <section class="glass-panel overflow-hidden rounded-[26px]">
+        <div class="p-6"><p class="text-[11px] font-semibold uppercase tracking-[0.32em] text-sb-accent">Accounts</p><h2 class="mt-2 text-2xl font-semibold text-stone-900 dark:text-stone-100">Users</h2></div>
+        <div class="overflow-x-auto"><table class="w-full text-left text-sm"><thead class="border-y border-white/10 text-xs uppercase tracking-wider text-stone-500"><tr><th class="px-6 py-3">Name</th><th class="px-6 py-3">Email</th><th class="px-6 py-3">Plan</th><th class="px-6 py-3">Joined</th><th class="px-6 py-3">Status</th></tr></thead><tbody class="divide-y divide-white/10">
+            @forelse($users as $user)<tr class="transition hover:bg-white/5"><td class="px-6 py-4 font-medium text-stone-900 dark:text-stone-100"><a class="hover:text-sb-accent" href="{{ route('admin.users.show', $user) }}">{{ $user->name }}</a></td><td class="px-6 py-4 text-stone-500 dark:text-stone-400">{{ $user->email }}</td><td class="px-6 py-4"><span class="rounded-full bg-white/5 px-2.5 py-1 text-xs text-stone-500">Free</span></td><td class="px-6 py-4 text-stone-500 dark:text-stone-400">{{ $user->created_at?->format('M j, Y') }}</td><td class="px-6 py-4"><span @class(['text-xs font-medium', 'text-sb-accent' => $user->active_status, 'text-stone-500' => ! $user->active_status])>{{ $user->active_status ? 'Active' : 'Inactive' }}</span></td></tr>@empty<tr><td colspan="5" class="px-6 py-10 text-center text-stone-500">No users found.</td></tr>@endforelse
+        </tbody></table></div><div class="border-t border-white/10 px-6 py-4">{{ $users->links() }}</div>
+    </section>
+</x-admin-layout>

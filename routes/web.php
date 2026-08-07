@@ -1,8 +1,10 @@
 <?php
 
+use App\Http\Controllers\AdminController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RepoController;
+use App\Http\Middleware\EnsureUserIsAdmin;
 use App\Models\Source;
 use App\Models\Workspace;
 use Illuminate\Support\Facades\Route;
@@ -55,14 +57,25 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
+Route::middleware(['auth', 'verified', EnsureUserIsAdmin::class])
+    ->prefix('admin')
+    ->as('admin.')
+    ->controller(AdminController::class)
+    ->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::get('/users', 'users')->name('users');
+        Route::get('/users/{user}', 'showUser')->name('users.show');
+        Route::get('/errors', 'errors')->name('errors');
+    });
+
 Route::middleware('auth')->prefix('auth/github')->group(function () {
 
-    Route::get('/' , fn () => Socialite::driver('github')->scopes(['repo'])->redirect())->name('github.connect');
+    Route::get('/', fn () => Socialite::driver('github')->scopes(['repo'])->redirect())->name('github.connect');
 
-    Route::get('/callback' , function () {
+    Route::get('/callback', function () {
         $githubUser = Socialite::driver('github')->user();
         auth()->user()->update([
-            'github_token' => encrypt($githubUser->token)
+            'github_token' => encrypt($githubUser->token),
         ]);
 
         return redirect('/dashboard')->with('github_connected', true);
@@ -70,11 +83,11 @@ Route::middleware('auth')->prefix('auth/github')->group(function () {
 
 });
 
-Route::middleware('auth')->controller(ChatController::class)->group(function (){
+Route::middleware('auth')->controller(ChatController::class)->group(function () {
 
-    Route::get('/chat' , 'index')->name('chat.index');
+    Route::get('/chat', 'index')->name('chat.index');
 
-    Route::post('/chat' , 'ask')->name('chat.ask');
+    Route::post('/chat', 'ask')->name('chat.ask');
 
 });
 
@@ -88,7 +101,5 @@ Route::middleware('auth')->group(function () {
     Route::get('/repos/available', [RepoController::class, 'available'])->name('repos.available');
     Route::post('/repos/ingest', [RepoController::class, 'ingest'])->name('repos.ingest');
 });
-
-
 
 require __DIR__.'/auth.php';
