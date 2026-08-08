@@ -357,7 +357,10 @@
                                 <p class="mt-1 font-mono text-xs text-stone-500 dark:text-stone-400">{{ number_format($subscription?->tokens_used_current_period ?? 0) }} / {{ number_format($subscription?->plan?->monthly_token_limit ?? 0) }} tokens</p>
                                 <p class="mt-1 font-mono text-xs text-stone-500 dark:text-stone-400">{{ number_format($subscription?->storage_used_mb ?? 0) }} / {{ number_format($subscription?->plan?->storage_limit_mb ?? 0) }} MB storage</p>
                             </div>
-                            <a href="{{ route('plans.index') }}" class="rounded-xl border border-sb-accent/30 px-3 py-1.5 text-xs font-semibold text-sb-accent hover:bg-sb-accent/10">Upgrade</a>
+                            <div class="flex flex-col items-end gap-2">
+                                <a href="{{ route('plans.index') }}" class="rounded-xl border border-sb-accent/30 px-3 py-1.5 text-xs font-semibold text-sb-accent hover:bg-sb-accent/10">Upgrade</a>
+                                <a href="{{ route('plans.manage') }}" class="text-xs font-semibold text-stone-500 hover:text-sb-accent dark:text-stone-400">Manage plan</a>
+                            </div>
                         </div>
                         <p class="mt-3 text-xs text-stone-500 dark:text-stone-400">Expairy at: {{ $subscription?->current_period_end?->format('M j, Y') ?? 'Choose a plan' }}</p>
                     </div>

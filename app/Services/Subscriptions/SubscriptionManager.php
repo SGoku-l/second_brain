@@ -24,10 +24,37 @@ class SubscriptionManager
                     ? $start->copy()->addDays($plan->duration_days)
                     : $start->copy()->addMonths($plan->duration_months),
                 'tokens_used_current_period' => 0,
+                'cancel_at_period_end' => false,
             ]);
             $subscription->save();
 
             return $subscription;
+        });
+    }
+
+    /** Switches capacity immediately without changing the already-paid billing period. */
+    public function switchPlan(User $user, SubscriptionPlan $plan): UserSubscription
+    {
+        return DB::transaction(function () use ($user, $plan) {
+            $subscription = UserSubscription::query()->lockForUpdate()->where('user_id', $user->id)->firstOrFail();
+
+            $subscription->update([
+                'subscription_plan_id' => $plan->id,
+                'cancel_at_period_end' => false,
+            ]);
+
+            return $subscription->fresh('plan');
+        });
+    }
+
+    /** Keeps the subscription active until its current period has ended. */
+    public function cancelAtPeriodEnd(User $user): UserSubscription
+    {
+        return DB::transaction(function () use ($user) {
+            $subscription = UserSubscription::query()->lockForUpdate()->where('user_id', $user->id)->firstOrFail();
+            $subscription->update(['cancel_at_period_end' => true]);
+
+            return $subscription->fresh('plan');
         });
     }
 

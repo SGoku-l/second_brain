@@ -98,6 +98,9 @@ Route::post('/razorpay/webhook', RazorpayWebhookController::class)->name('razorp
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard/chart/tokens', [DashboardChartController::class, 'tokens'])->name('dashboard.chart.tokens');
     Route::get('/plans', [PlansController::class, 'index'])->name('plans.index');
+    Route::get('/plans/manage', [PlansController::class, 'manage'])->name('plans.manage');
+    Route::post('/plans/switch', [PlansController::class, 'switch'])->name('plans.switch');
+    Route::post('/plans/cancel', [PlansController::class, 'cancel'])->name('plans.cancel');
     Route::post('/plans/{plan}/checkout', [PlansController::class, 'checkout'])->name('plans.checkout');
 });
 
