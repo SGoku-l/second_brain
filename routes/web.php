@@ -12,12 +12,18 @@ use App\Http\Controllers\RepoController;
 use App\Http\Middleware\EnsureSubscriptionActive;
 use App\Http\Middleware\EnsureUserIsAdmin;
 use App\Models\Source;
+use App\Models\SubscriptionPlan;
 use App\Models\Workspace;
 use Illuminate\Support\Facades\Route;
 use Laravel\Socialite\Socialite;
 
 Route::get('/', function () {
-    return view('welcome');
+    return view('welcome', [
+        'plans' => SubscriptionPlan::query()
+            ->where('active', true)
+            ->orderBy('price')
+            ->get(),
+    ]);
 });
 
 Route::get('/dashboard', function () {

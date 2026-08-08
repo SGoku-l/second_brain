@@ -70,6 +70,57 @@
         @apply rounded-xl border shadow-lg backdrop-blur-xl;
     }
 
+    .bg-code-grid {
+        background-image:
+            linear-gradient(rgba(52,211,153,0.05) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(52,211,153,0.05) 1px, transparent 1px);
+        background-size: 40px 40px;
+    }
+
+    html:not(.dark) .bg-code-grid {
+        background-image:
+            linear-gradient(rgba(16,185,129,0.06) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(16,185,129,0.06) 1px, transparent 1px);
+    }
+
+    .floating-node {
+        @apply absolute font-mono text-xs px-3 py-1.5 rounded-lg border pointer-events-none select-none;
+        animation: float 8s ease-in-out infinite;
+        opacity: 0.5;
+    }
+
+    html.dark .floating-node {
+        @apply bg-white/5 border-white/10 text-sb-accent;
+    }
+
+    html:not(.dark) .floating-node {
+        @apply bg-emerald-50 border-emerald-200 text-sb-accent-light;
+    }
+
+    @keyframes float {
+        0%, 100% { transform: translateY(0) translateX(0); }
+        50% { transform: translateY(-20px) translateX(10px); }
+    }
+
+    .glow-orb {
+        @apply absolute rounded-full blur-3xl opacity-20;
+        animation: pulse-glow-bg 10s ease-in-out infinite;
+    }
+
+    .glow-orb-1 {
+        @apply w-96 h-96 bg-sb-accent top-[-10%] right-[-5%];
+    }
+
+    .glow-orb-2 {
+        @apply w-80 h-80 bg-sb-accent top-[60%] left-[-10%];
+        animation-delay: 3s;
+    }
+
+    @keyframes pulse-glow-bg {
+        0%, 100% { opacity: 0.15; }
+        50% { opacity: 0.3; }
+    }
+
 html.dark .dropdown-panel {
         @apply border-sb-border-dark bg-sb-glass-dark text-stone-200;
     }

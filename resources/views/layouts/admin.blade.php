@@ -6,6 +6,7 @@
     <title>{{ $title ?? 'Admin' }} · {{ config('app.name', 'Second Brain') }}</title>
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700|jetbrains-mono:400,500&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script>
         (() => {
@@ -19,10 +20,10 @@
         <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
             <header class="glass-panel flex flex-col gap-4 rounded-[26px] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
                 <div class="flex items-center gap-4">
-                    <div class="flex h-10 w-10 items-center justify-center rounded-2xl border border-sb-accent/25 bg-sb-accent/10 font-mono text-sm font-bold text-sb-accent">SB</div>
+                    <x-sb-logo size="md" />
                     <div>
                         <p class="text-[11px] font-semibold uppercase tracking-[0.32em] text-sb-accent">Administration</p>
-                        <h1 class="text-lg font-semibold text-stone-900 dark:text-stone-100">Second Brain control room</h1>
+                        <h1 class="text-sm font-semibold text-stone-600 dark:text-stone-400">Control room</h1>
                     </div>
                 </div>
                 <nav class="flex flex-wrap items-center gap-1 text-sm">
