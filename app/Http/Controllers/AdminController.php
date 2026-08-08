@@ -53,10 +53,29 @@ class AdminController extends Controller
         return response()->json($this->dailySeries(Transaction::query(), 'created_at'));
     }
 
-    public function users(): View
+    public function users(Request $request): View
     {
+        $filters = $request->validate([
+            'search' => ['nullable', 'string', 'max:255'],
+            'status' => ['nullable', 'in:active,inactive'],
+            'plan' => ['nullable', 'string'],
+        ]);
+        $search = trim($filters['search'] ?? '');
+        $plan = $filters['plan'] ?? '';
+
         return view('admin.users', [
-            'users' => User::query()->with('subscription.plan')->latest()->paginate(20),
+            'users' => User::query()
+                ->with('subscription.plan')
+                ->when($search !== '', fn ($query) => $query->where(fn ($query) => $query->whereRaw('LOWER(name) LIKE ?', ['%'.strtolower($search).'%'])->orWhereRaw('LOWER(email) LIKE ?', ['%'.strtolower($search).'%'])))
+                ->when(($filters['status'] ?? '') === 'active', fn ($query) => $query->where('active_status', true))
+                ->when(($filters['status'] ?? '') === 'inactive', fn ($query) => $query->where('active_status', false))
+                ->when($plan === 'free', fn ($query) => $query->whereHas('subscription.plan', fn ($query) => $query->where('is_free', true)))
+                ->when($plan !== '' && $plan !== 'free', fn ($query) => $query->whereHas('subscription', fn ($query) => $query->where('subscription_plan_id', $plan)))
+                ->latest()
+                ->paginate(25)
+                ->withQueryString(),
+            'plans' => SubscriptionPlan::query()->where('active', true)->orderBy('price')->get(['id', 'name', 'is_free']),
+            'filters' => ['search' => $search, 'status' => $filters['status'] ?? '', 'plan' => $plan],
         ]);
     }
 
