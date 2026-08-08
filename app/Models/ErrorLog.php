@@ -19,11 +19,12 @@ class ErrorLog extends Model
         'message',
         'context',
         'exception_class',
+        'resolved_at',
     ];
 
     protected function casts(): array
     {
-        return ['context' => 'array'];
+        return ['context' => 'array', 'resolved_at' => 'datetime'];
     }
 
     public function user(): BelongsTo

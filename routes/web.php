@@ -83,6 +83,8 @@ Route::middleware(['auth', 'verified', EnsureUserIsAdmin::class])
         Route::post('/users/{user}/sources/{source}/reindex', 'forceReindex')->name('users.sources.reindex');
         Route::delete('/users/{user}/sources/{source}', 'forceDeleteSource')->name('users.sources.destroy');
         Route::get('/errors', 'errors')->name('errors');
+        Route::get('/errors/{error}', 'showError')->name('errors.show');
+        Route::patch('/errors/{error}/resolve', 'resolveError')->name('errors.resolve');
         Route::get('/transactions', [TransactionController::class, 'index'])->name('transactions.index');
         Route::get('/settings', [BillingController::class, 'settings'])->name('settings');
         Route::get('/charts/tokens', 'tokenChart')->name('charts.tokens');

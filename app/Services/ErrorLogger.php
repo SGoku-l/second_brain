@@ -21,6 +21,16 @@ class ErrorLogger
             $context['exception_message'] = $exception->getMessage();
         }
 
+        if (app()->bound('request') && ! app()->runningInConsole()) {
+            $request = request();
+            $context['request'] ??= [
+                'method' => $request->method(),
+                'path' => $request->path(),
+                'route' => $request->route()?->getName(),
+                'input' => $request->except(['_token']),
+            ];
+        }
+
         unset($context['exception']);
 
         ErrorLog::create([
