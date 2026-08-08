@@ -11,4 +11,9 @@
             @endforeach
         </div>
     </section>
+    <div class="mt-6 grid gap-6 xl:grid-cols-3">
+        <x-usage-chart title="Token usage" eyebrow="Platform usage" :endpoint="route('admin.charts.tokens')" value-label="tokens" />
+        <x-usage-chart title="New users" eyebrow="Growth" :endpoint="route('admin.charts.users')" value-label="signups" />
+        <x-usage-chart title="Transactions" eyebrow="Billing" :endpoint="route('admin.charts.transactions')" value-label="transactions" />
+    </div>
 </x-admin-layout>

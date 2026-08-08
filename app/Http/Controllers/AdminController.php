@@ -6,11 +6,17 @@ use App\Models\Chunks;
 use App\Models\ErrorLog;
 use App\Models\Source;
 use App\Models\User;
+use App\Models\TokenUsage;
+use App\Models\Transaction;
+use App\Http\Controllers\Concerns\BuildsUsageCharts;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class AdminController extends Controller
 {
+    use BuildsUsageCharts;
     public function index(): View
     {
         return view('admin.index', [
@@ -23,6 +29,21 @@ class AdminController extends Controller
                 'failedJobs' => DB::table('failed_jobs')->count(),
             ],
         ]);
+    }
+
+    public function tokenChart(Request $request): JsonResponse
+    {
+        return response()->json($this->dailySeries(TokenUsage::query(), 'recorded_at', 'sum'));
+    }
+
+    public function userChart(Request $request): JsonResponse
+    {
+        return response()->json($this->dailySeries(User::query(), 'created_at'));
+    }
+
+    public function transactionChart(Request $request): JsonResponse
+    {
+        return response()->json($this->dailySeries(Transaction::query(), 'created_at'));
     }
 
     public function users(): View

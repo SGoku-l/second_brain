@@ -149,7 +149,7 @@ class RepoController extends Controller
         $repoName = $source->identifier;
 
         DB::transaction(function () use ($request, $source, $limits) {
-            $bytes = (int) Chunks::query()->where('source_id', $source->id)->sum(DB::raw('LENGTH(content)'));
+            $bytes = (int) Chunks::query()->where('source_id', $source->id)->sum(DB::raw('octet_length(content)'));
             Chunks::query()->where('source_id', $source->id)->delete();
             $limits->releaseStorage($request->user(), $bytes);
             $source->delete();

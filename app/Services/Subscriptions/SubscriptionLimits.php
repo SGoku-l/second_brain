@@ -6,6 +6,7 @@ use App\Exceptions\SubscriptionLimitExceeded;
 use App\Models\Source;
 use App\Models\User;
 use App\Models\UserSubscription;
+use App\Models\TokenUsage;
 use Illuminate\Support\Facades\DB;
 
 class SubscriptionLimits
@@ -80,7 +81,16 @@ class SubscriptionLimits
     {
         DB::transaction(function () use ($user, $tokens) {
             $subscription = $this->activeSubscription($user);
-            $subscription->increment('tokens_used_current_period', max(0, $tokens));
+            $tokens = max(0, $tokens);
+            $subscription->increment('tokens_used_current_period', $tokens);
+
+            if ($tokens > 0) {
+                TokenUsage::create([
+                    'user_id' => $user->id,
+                    'tokens' => $tokens,
+                    'recorded_at' => now(),
+                ]);
+            }
         });
     }
 

@@ -1,5 +1,6 @@
 import './bootstrap';
 import './chat';
+import './usage-charts';
 
 import Alpine from 'alpinejs';
 

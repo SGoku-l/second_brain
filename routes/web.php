@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\BillingController;
 use App\Http\Controllers\Admin\TransactionController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\ChatController;
+use App\Http\Controllers\DashboardChartController;
 use App\Http\Controllers\PlansController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RazorpayWebhookController;
@@ -74,6 +75,9 @@ Route::middleware(['auth', 'verified', EnsureUserIsAdmin::class])
         Route::get('/errors', 'errors')->name('errors');
         Route::get('/transactions', [TransactionController::class, 'index'])->name('transactions.index');
         Route::get('/settings', [BillingController::class, 'settings'])->name('settings');
+        Route::get('/charts/tokens', 'tokenChart')->name('charts.tokens');
+        Route::get('/charts/users', 'userChart')->name('charts.users');
+        Route::get('/charts/transactions', 'transactionChart')->name('charts.transactions');
         Route::post('/plans', [BillingController::class, 'storePlan'])->name('plans.store');
         Route::put('/plans/{plan}', [BillingController::class, 'updatePlan'])->name('plans.update');
         Route::patch('/plans/{plan}/deactivate', [BillingController::class, 'deactivatePlan'])->name('plans.deactivate');
@@ -82,6 +86,7 @@ Route::middleware(['auth', 'verified', EnsureUserIsAdmin::class])
 Route::post('/razorpay/webhook', RazorpayWebhookController::class)->name('razorpay.webhook');
 
 Route::middleware('auth')->group(function () {
+    Route::get('/dashboard/chart/tokens', [DashboardChartController::class, 'tokens'])->name('dashboard.chart.tokens');
     Route::get('/plans', [PlansController::class, 'index'])->name('plans.index');
     Route::post('/plans/{plan}/checkout', [PlansController::class, 'checkout'])->name('plans.checkout');
 });

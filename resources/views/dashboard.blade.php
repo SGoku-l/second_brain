@@ -375,6 +375,9 @@
                     </div>
                 </section>
             </div>
+            <div class="mt-6">
+                <x-usage-chart title="Your token usage" eyebrow="Usage" :endpoint="route('dashboard.chart.tokens')" default-range="7d" value-label="tokens" />
+            </div>
         </div>
     </div>
 </x-app-layout>

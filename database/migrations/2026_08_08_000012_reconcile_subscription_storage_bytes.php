@@ -23,6 +23,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        // Usage is derived data and does not need to be reverted.
+        // This migration corrects derived accounting data.
     }
 };
