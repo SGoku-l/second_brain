@@ -8,10 +8,15 @@ use App\Models\Source;
 use App\Models\User;
 use App\Models\TokenUsage;
 use App\Models\Transaction;
+use App\Models\SubscriptionPlan;
+use App\Models\UserSubscription;
+use App\Jobs\IngestRepoJob;
+use App\Services\Subscriptions\SubscriptionManager;
 use App\Http\Controllers\Concerns\BuildsUsageCharts;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class AdminController extends Controller
@@ -49,7 +54,7 @@ class AdminController extends Controller
     public function users(): View
     {
         return view('admin.users', [
-            'users' => User::query()->latest()->paginate(20),
+            'users' => User::query()->with('subscription.plan')->latest()->paginate(20),
         ]);
     }
 
@@ -67,7 +72,67 @@ class AdminController extends Controller
             'chunkCount' => $sources->sum('chunks_count'),
             'repoCount' => $sources->count(),
             'subscription' => $user->subscription?->load('plan'),
+            'plans' => SubscriptionPlan::query()->where('active', true)->orderBy('price')->get(),
+            'transactions' => $user->transactions()->with('plan:id,name')->latest()->limit(8)->get(),
+            'tokenUsage' => TokenUsage::query()
+                ->where('user_id', $user->id)
+                ->where('recorded_at', '>=', now()->subDays(6)->startOfDay())
+                ->selectRaw('DATE(recorded_at) as day, SUM(tokens) as tokens')
+                ->groupBy('day')->orderBy('day')->get(),
         ]);
+    }
+
+    public function toggleUser(User $user): \Illuminate\Http\RedirectResponse
+    {
+        $user->update(['active_status' => ! $user->active_status]);
+
+        return back()->with('status', $user->name.' is now '.($user->active_status ? 'active' : 'inactive').'.');
+    }
+
+    public function changePlan(Request $request, User $user, SubscriptionManager $subscriptions): \Illuminate\Http\RedirectResponse
+    {
+        $data = $request->validate(['plan_id' => ['required', 'exists:subscription_plans,id']]);
+        $plan = SubscriptionPlan::query()->where('active', true)->findOrFail($data['plan_id']);
+        $subscriptions->activate($user, $plan);
+
+        return back()->with('status', $user->name.' was moved to '.$plan->name.'.');
+    }
+
+    public function regenerateApiToken(User $user): \Illuminate\Http\RedirectResponse
+    {
+        $user->update(['api_token' => Str::random(80)]);
+
+        return back()->with('status', 'API token regenerated for '.$user->name.'.');
+    }
+
+    public function forceReindex(User $user, Source $source): \Illuminate\Http\RedirectResponse
+    {
+        abort_unless($source->workspace?->user_id === $user->id, 404);
+        $source->update(['meta' => array_merge($source->meta ?? [], ['status' => 'indexing', 'last_error' => null, 'last_started_at' => now()->toIso8601String()])]);
+        dispatch(new IngestRepoJob($source->id, $source->identifier));
+
+        return back()->with('status', 'Re-index started for '.$source->identifier.'.');
+    }
+
+    public function forceDeleteSource(User $user, Source $source): \Illuminate\Http\RedirectResponse
+    {
+        abort_unless($source->workspace?->user_id === $user->id, 404);
+        $name = $source->identifier;
+        DB::transaction(function () use ($user, $source) {
+            $bytes = (int) Chunks::query()->where('source_id', $source->id)->sum(DB::raw('octet_length(content)'));
+            Chunks::query()->where('source_id', $source->id)->delete();
+            $subscription = UserSubscription::query()->where('user_id', $user->id)->lockForUpdate()->first();
+            if ($subscription) {
+                $usedBytes = max(0, $subscription->storage_used_bytes - $bytes);
+                $subscription->update([
+                    'storage_used_bytes' => $usedBytes,
+                    'storage_used_mb' => (int) ceil($usedBytes / (1024 * 1024)),
+                ]);
+            }
+            $source->delete();
+        });
+
+        return back()->with('status', $name.' was deleted.');
     }
 
     public function errors(): View

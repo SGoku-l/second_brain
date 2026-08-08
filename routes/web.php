@@ -29,10 +29,6 @@ Route::get('/', function () {
 Route::get('/dashboard', function () {
     $user = auth()->user();
 
-    if (! $user->active_status) {
-        $user->update(['active_status' => true]);
-    }
-
     Workspace::firstOrCreate([
         'user_id' => $user->id,
         'name' => 'Default',
@@ -78,6 +74,11 @@ Route::middleware(['auth', 'verified', EnsureUserIsAdmin::class])
         Route::get('/', 'index')->name('index');
         Route::get('/users', 'users')->name('users');
         Route::get('/users/{user}', 'showUser')->name('users.show');
+        Route::patch('/users/{user}/status', 'toggleUser')->name('users.status');
+        Route::patch('/users/{user}/plan', 'changePlan')->name('users.plan');
+        Route::post('/users/{user}/api-token', 'regenerateApiToken')->name('users.api-token');
+        Route::post('/users/{user}/sources/{source}/reindex', 'forceReindex')->name('users.sources.reindex');
+        Route::delete('/users/{user}/sources/{source}', 'forceDeleteSource')->name('users.sources.destroy');
         Route::get('/errors', 'errors')->name('errors');
         Route::get('/transactions', [TransactionController::class, 'index'])->name('transactions.index');
         Route::get('/settings', [BillingController::class, 'settings'])->name('settings');
