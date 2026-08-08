@@ -53,6 +53,7 @@
                 </button>
                 <div
                     x-show="open"
+                    x-cloak
                     @click.outside="open = false"
                     x-transition:enter="transition ease-out duration-150"
                     x-transition:enter-start="opacity-0 scale-95"
@@ -60,8 +61,7 @@
                     x-transition:leave="transition ease-in duration-100"
                     x-transition:leave-start="opacity-100 scale-100"
                     x-transition:leave-end="opacity-0 scale-95"
-                    class="absolute right-0 mt-2 w-48 rounded-xl py-1 z-[140] shadow-lg border border-white/10 bg-[#111111]/95"
-                    style="display: none;"
+                    class="dropdown-panel absolute right-0 z-[140] mt-2 w-48 py-1"
                 >
                     <div class="px-4 py-2.5 border-b" :class="darkMode ? 'border-white/10' : 'border-stone-200'">
                         <p class="text-sm font-medium truncate" :class="darkMode ? 'text-stone-200' : 'text-stone-800'">{{ Auth::user()->name }}</p>

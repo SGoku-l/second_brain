@@ -9,10 +9,35 @@
 @layer base {
     html {
         @apply antialiased;
+        color-scheme: light;
     }
 
     html.dark {
         color-scheme: dark;
+    }
+
+    html.light,
+    html:not(.dark) {
+        color-scheme: light;
+    }
+
+    /* Native option menus are OS-rendered; color-scheme keeps them legible. */
+    select,
+    input[type='date'] {
+        @apply rounded-xl border border-stone-300/80 bg-white/80 px-3 py-2 text-stone-800 transition-colors duration-theme;
+    }
+
+    html.dark select,
+    html.dark input[type='date'] {
+        @apply border-white/10 bg-black/30 text-stone-100;
+    }
+
+    html.dark select option {
+        @apply bg-sb-bg-dark text-stone-100;
+    }
+
+    html:not(.dark) select option {
+        @apply bg-white text-stone-800;
     }
 
     html.dark body {
@@ -35,6 +60,22 @@
     /* Glass panels */
     .glass-panel {
         @apply backdrop-blur-xl border transition-colors duration-theme;
+    }
+
+    .theme-select {
+        @apply focus:border-sb-accent/50 focus:outline-none focus:ring-2 focus:ring-sb-accent/15;
+    }
+
+    .dropdown-panel {
+        @apply rounded-xl border shadow-lg backdrop-blur-xl;
+    }
+
+html.dark .dropdown-panel {
+        @apply border-sb-border-dark bg-sb-glass-dark text-stone-200;
+    }
+
+html:not(.dark) .dropdown-panel {
+        @apply border-sb-border-light bg-sb-glass-light text-stone-800 shadow-glass-light;
     }
 
     /* Hide scrollbar but keep scroll functionality */

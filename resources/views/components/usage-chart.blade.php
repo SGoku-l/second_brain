@@ -7,7 +7,7 @@
             <h2 class="mt-2 text-lg font-semibold text-stone-900 dark:text-stone-100">{{ $title }}</h2>
         </div>
         <div class="flex flex-wrap items-center gap-2">
-            <select x-model="range" @change="load()" class="rounded-xl border border-white/10 bg-black/5 px-3 py-2 text-xs text-stone-700 dark:text-stone-200">
+            <select x-model="range" @change="load()" class="theme-select text-xs">
                 <option value="today">Today</option>
                 <option value="7d">Last 7 days</option>
                 <option value="30d">Last 30 days</option>
@@ -15,8 +15,8 @@
             </select>
             <template x-if="range === 'custom'">
                 <div class="flex items-center gap-2">
-                    <input x-model="start" @change="load()" type="date" class="rounded-xl border border-white/10 bg-black/5 px-2 py-2 text-xs text-stone-700 dark:text-stone-200">
-                    <input x-model="end" @change="load()" type="date" class="rounded-xl border border-white/10 bg-black/5 px-2 py-2 text-xs text-stone-700 dark:text-stone-200">
+                    <input x-model="start" @change="load()" type="date" class="theme-select px-2 text-xs">
+                    <input x-model="end" @change="load()" type="date" class="theme-select px-2 text-xs">
                 </div>
             </template>
         </div>
