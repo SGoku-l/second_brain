@@ -12,7 +12,8 @@ class GithubIngestor
         //
     }
 
-    public function fetchRepoFiles(string $ownerRepo) {
+    public function fetchRepoFiles(string $ownerRepo, ?array $paths = null): array
+    {
 
         $client = new \GuzzleHttp\Client([
             'base_uri' => 'https://api.github.com/',
@@ -32,9 +33,12 @@ class GithubIngestor
 
         $skipPatterns = ['package-lock.json', 'composer.lock', '.min.js', 'vendor/', 'node_modules/']; 
 
+        $requestedPaths = $paths === null ? null : array_flip($paths);
+
         foreach($tree['tree'] as $item){
 
             if($item['type'] !== 'blob') continue;
+            if ($requestedPaths !== null && ! isset($requestedPaths[$item['path']])) continue;
             if(!collect($exceptions)->contains(fn($ext) => str_ends_with($item['path'], $ext))) continue;
             if(collect($skipPatterns)->contains(fn($p) => str_contains($item['path'], $p))) continue;
             if(($item['size'] ?? 0) > 100000) continue; // Skip files larger than 100KB
@@ -49,7 +53,7 @@ class GithubIngestor
 
     }
 
-    public function fetchCommitHistory(string $ownerRepo , int $limit = 50): array{
+    public function fetchCommitHistory(string $ownerRepo, int $limit = 50, ?string $since = null): array{
 
         $client = new \GuzzleHttp\Client([
             'base_uri' => 'https://api.github.com/',
@@ -63,9 +67,10 @@ class GithubIngestor
         // 1. Get the list of recent commits (message, author, sha)
         $commits = json_decode(
             $client->get("repos/{$ownerRepo}/commits",[
-                'query' => [
+                'query' => array_filter([
                     'per_page' => $limit,
-                ]
+                    'since' => $since,
+                ])
             ])->getBody() , true
         );
 
@@ -99,6 +104,16 @@ class GithubIngestor
                 continue;
             }
 
+            $changedFiles = collect($detail['files'] ?? [])
+                    ->map(fn (array $file) => [
+                        'path' => $file['filename'] ?? null,
+                        'previous_path' => $file['previous_filename'] ?? null,
+                        'status' => $file['status'] ?? null,
+                    ])
+                    ->filter(fn (array $file) => ! empty($file['path']))
+                    ->values()
+                    ->all();
+
             $diffSummary = collect($detail['files'] ?? [])
                     ->map(function ($file){
                         $patch = $file['patch'] ?? '';
@@ -112,6 +127,7 @@ class GithubIngestor
                 'author'  => $author,
                 'date'    => $date,
                 'diff'    => $diffSummary,
+                'files'   => $changedFiles,
             ];
 
             // Be gentle on GitHub's rate limits since this is one extra call per commit

@@ -279,7 +279,7 @@
                         class="mt-5 space-y-3"
                     >
                         @forelse($repos as $repo)
-                            <div class="rounded-2xl border border-white/10 bg-black/5 px-4 py-3">
+                            <div x-data="{ confirmDelete: false }" class="rounded-2xl border border-white/10 bg-black/5 px-4 py-3">
                                 <div class="flex items-center justify-between gap-3">
                                     <div>
                                         <p class="text-sm font-semibold text-stone-900 dark:text-stone-100">{{ $repo['identifier'] }}</p>
@@ -292,13 +292,26 @@
                                             <p class="mt-1 text-xs text-stone-500 dark:text-stone-400">{{ $repo['chunksIndexed'] }} chunks indexed so far.</p>
                                         @endif
                                     </div>
-                                    <span @class([
-                                        'rounded-full px-2.5 py-1 text-[11px] font-medium',
-                                        'bg-red-500/10 text-red-600 dark:text-red-400' => in_array($repo['status'], ['error', 'limit_reached'], true),
-                                        'bg-sb-accent/10 text-sb-accent' => ! in_array($repo['status'], ['error', 'limit_reached'], true),
-                                    ])>
-                                        {{ ucfirst($repo['status']) }}
-                                    </span>
+                                    <div class="flex items-center gap-2">
+                                        @if($repo['status'] === 'indexed')
+                                            <form method="POST" action="{{ route('repos.resync', $repo['id']) }}">
+                                                @csrf
+                                                <button type="submit" class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sb-accent/30 bg-sb-accent/10 text-sb-accent transition hover:bg-sb-accent/20" aria-label="Re-sync {{ $repo['identifier'] }}" title="Re-sync">
+                                                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 11a8.1 8.1 0 0 0-15.5-2M4 5v4h4M4 13a8.1 8.1 0 0 0 15.5 2M20 19v-4h-4"/></svg>
+                                                </button>
+                                            </form>
+                                        @endif
+                                        <button type="button" @click="confirmDelete = true" class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-rose-500/30 bg-rose-500/10 text-rose-600 transition hover:bg-rose-500/20 dark:text-rose-400" aria-label="Delete {{ $repo['identifier'] }}" title="Delete">
+                                            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 6h18M9 6V4h6v2M8 6l1 14h6l1-14M10 10v6M14 10v6"/></svg>
+                                        </button>
+                                        <span @class([
+                                            'rounded-full px-2.5 py-1 text-[11px] font-medium',
+                                            'bg-red-500/10 text-red-600 dark:text-red-400' => in_array($repo['status'], ['error', 'limit_reached'], true),
+                                            'bg-sb-accent/10 text-sb-accent' => ! in_array($repo['status'], ['error', 'limit_reached'], true),
+                                        ])>
+                                            {{ ucfirst(str_replace('_', ' ', $repo['status'])) }}
+                                        </span>
+                                    </div>
                                 </div>
 
                                 @if($repo['status'] === 'indexing')
@@ -311,6 +324,21 @@
                                         <div class="h-full w-2/5 rounded-full bg-sb-accent animate-pulse"></div>
                                     </div>
                                 @endif
+
+                                <div x-show="confirmDelete" x-cloak class="fixed inset-0 z-[250] flex items-center justify-center bg-black/60 px-4" role="dialog" aria-modal="true">
+                                    <div @click.outside="confirmDelete = false" class="glass-panel w-full max-w-md rounded-[26px] p-6">
+                                        <h3 class="text-lg font-semibold text-stone-900 dark:text-stone-100">Remove repository?</h3>
+                                        <p class="mt-3 text-sm text-stone-600 dark:text-stone-400">Are you sure you want to remove <span class="font-semibold">{{ $repo['identifier'] }}</span>? This will delete all indexed data for this repository.</p>
+                                        <div class="mt-6 flex justify-end gap-3">
+                                            <button type="button" @click="confirmDelete = false" class="rounded-xl border border-white/10 px-4 py-2 text-sm text-stone-600 dark:text-stone-300">Cancel</button>
+                                            <form method="POST" action="{{ route('repos.destroy', $repo['id']) }}">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-500">Delete repository</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         @empty
                             <div class="rounded-2xl border border-dashed border-stone-300 bg-black/5 px-4 py-8 text-center text-sm text-stone-500 dark:border-white/10 dark:text-stone-400">

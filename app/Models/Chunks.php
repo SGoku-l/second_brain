@@ -14,6 +14,7 @@ class Chunks extends Model
         'source_id',
         'file_path',
         'content',
+        'content_hash',
         'content_type',
     ];
 

@@ -118,6 +118,8 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/repos/available', [RepoController::class, 'available'])->name('repos.available');
     Route::post('/repos/ingest', [RepoController::class, 'ingest'])->middleware(EnsureSubscriptionActive::class)->name('repos.ingest');
+    Route::post('/repos/{source}/resync', [RepoController::class, 'resync'])->middleware(EnsureSubscriptionActive::class)->name('repos.resync');
+    Route::delete('/repos/{source}', [RepoController::class, 'destroy'])->name('repos.destroy');
 });
 
 require __DIR__.'/auth.php';

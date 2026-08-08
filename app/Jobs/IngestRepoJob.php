@@ -62,9 +62,18 @@ class IngestRepoJob implements ShouldQueue
 
             $token = decrypt($user->github_token);
             $ingestor = new GithubIngestor($token);
-            $files = $ingestor->fetchRepoFiles($this->repoFullName);
             $chunker = new Chunker;
             $embedder = new Embedder;
+
+            $previousSyncAt = $source->last_synced_at?->toIso8601String();
+            $commits = $ingestor->fetchCommitHistory($this->repoFullName, since: $previousSyncAt);
+            $changedPaths = $previousSyncAt ? $this->changedFilePaths($commits) : null;
+
+            if ($previousSyncAt) {
+                $this->removeDeletedOrRenamedFiles($source, $user, $commits, $limits);
+            }
+
+            $files = $ingestor->fetchRepoFiles($this->repoFullName, $changedPaths);
 
             Log::info('Repository files fetched for ingestion.', [
                 'repository' => $this->repoFullName,
@@ -77,13 +86,19 @@ class IngestRepoJob implements ShouldQueue
                     continue;
                 }
 
-                $alreadyIngested = Chunks::query()
+                $contentHash = hash('sha256', $content);
+                $existingChunks = Chunks::query()
                     ->where('source_id', $source->id)
                     ->where('file_path', $path)
-                    ->exists();
+                    ->get();
 
-                if ($alreadyIngested) {
+                if ($existingChunks->isNotEmpty() && $existingChunks->every(fn (Chunks $chunk) => $chunk->content_hash === $contentHash)) {
                     continue;
+                }
+
+                if ($existingChunks->isNotEmpty()) {
+                    $limits->releaseStorage($user, $existingChunks->sum(fn (Chunks $chunk) => strlen($chunk->content)));
+                    Chunks::query()->whereKey($existingChunks->modelKeys())->delete();
                 }
 
                 $pieces = $chunker->chunk($content);
@@ -138,6 +153,7 @@ class IngestRepoJob implements ShouldQueue
                         'source_id' => $source->id,
                         'file_path' => $path,
                         'content' => $piece,
+                        'content_hash' => $contentHash,
                     ]);
 
                     DB::statement('UPDATE chunks SET embedding = ? WHERE id = ?', [
@@ -150,8 +166,6 @@ class IngestRepoJob implements ShouldQueue
                     usleep(500000);
                 }
             }
-
-            $commits = $ingestor->fetchCommitHistory($this->repoFullName);
 
             Log::info('Repository commits fetched for ingestion.', [
                 'repository' => $this->repoFullName,
@@ -231,6 +245,7 @@ class IngestRepoJob implements ShouldQueue
                         'source_id' => $source->id,
                         'file_path' => $path,
                         'content' => $piece,
+                        'content_hash' => hash('sha256', $content),
                         'content_type' => 'commit',
                     ]);
 
@@ -296,6 +311,41 @@ class IngestRepoJob implements ShouldQueue
             'reason' => $reason,
             'exception' => $exception,
         ]);
+    }
+
+    /** @param array<string, array{files: array<int, array{path: ?string, previous_path: ?string, status: ?string}>}> $commits */
+    private function changedFilePaths(array $commits): array
+    {
+        return collect($commits)
+            ->flatMap(fn (array $commit) => $commit['files'] ?? [])
+            ->filter(fn (array $file) => ($file['status'] ?? null) !== 'removed')
+            ->pluck('path')
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    /** @param array<string, array{files: array<int, array{path: ?string, previous_path: ?string, status: ?string}>}> $commits */
+    private function removeDeletedOrRenamedFiles(Source $source, $user, array $commits, SubscriptionLimits $limits): void
+    {
+        $oldPaths = collect($commits)
+            ->flatMap(fn (array $commit) => $commit['files'] ?? [])
+            ->filter(fn (array $file) => ($file['status'] ?? null) === 'removed' || ! empty($file['previous_path']))
+            ->map(fn (array $file) => ($file['status'] ?? null) === 'removed' ? $file['path'] : $file['previous_path'])
+            ->filter()
+            ->unique();
+
+        foreach ($oldPaths as $path) {
+            $chunks = Chunks::query()->where('source_id', $source->id)->where('file_path', $path)->get();
+
+            if ($chunks->isEmpty()) {
+                continue;
+            }
+
+            $limits->releaseStorage($user, $chunks->sum(fn (Chunks $chunk) => strlen($chunk->content)));
+            Chunks::query()->whereKey($chunks->modelKeys())->delete();
+        }
     }
 
     private function markLimitReached(Source $source, string $reason): void

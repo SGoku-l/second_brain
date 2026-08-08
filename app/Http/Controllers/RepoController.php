@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Exceptions\SubscriptionLimitExceeded;
 use App\Jobs\IngestRepoJob;
 use App\Models\Source;
+use App\Models\Chunks;
 use App\Models\Workspace;
 use GuzzleHttp\Client;
 use Illuminate\Http\Request;
@@ -117,5 +118,48 @@ class RepoController extends Controller
         }
 
         return redirect('/dashboard')->with('repo_ingest_message', 'Indexing started for ' . $count . ' repositories');
+    }
+
+    public function resync(Request $request, Source $source, SubscriptionLimits $limits)
+    {
+        $this->ensureOwnedBy($request, $source);
+
+        try {
+            $limits->ensureActive($request->user());
+        } catch (SubscriptionLimitExceeded $e) {
+            return redirect('/dashboard')->with('limit_error', $e->getMessage());
+        }
+
+        $source->update([
+            'meta' => array_merge($source->meta ?? [], [
+                'status' => 'indexing',
+                'last_error' => null,
+                'last_started_at' => now()->toIso8601String(),
+            ]),
+        ]);
+
+        dispatch(new IngestRepoJob($source->id, $source->identifier));
+
+        return redirect('/dashboard')->with('repo_ingest_message', 'Re-sync started for '.$source->identifier);
+    }
+
+    public function destroy(Request $request, Source $source, SubscriptionLimits $limits)
+    {
+        $this->ensureOwnedBy($request, $source);
+        $repoName = $source->identifier;
+
+        DB::transaction(function () use ($request, $source, $limits) {
+            $bytes = (int) Chunks::query()->where('source_id', $source->id)->sum(DB::raw('LENGTH(content)'));
+            Chunks::query()->where('source_id', $source->id)->delete();
+            $limits->releaseStorage($request->user(), $bytes);
+            $source->delete();
+        });
+
+        return redirect('/dashboard')->with('repo_ingest_message', $repoName.' removed');
+    }
+
+    private function ensureOwnedBy(Request $request, Source $source): void
+    {
+        abort_unless($source->workspace?->user_id === $request->user()->id, 403);
     }
 }
