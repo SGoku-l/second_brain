@@ -24,8 +24,6 @@ class SubscriptionManager
                     ? $start->copy()->addDays($plan->duration_days)
                     : $start->copy()->addMonths($plan->duration_months),
                 'tokens_used_current_period' => 0,
-                'storage_used_mb' => 0,
-                'storage_used_bytes' => 0,
             ]);
             $subscription->save();
 

@@ -73,6 +73,9 @@ Route::middleware(['auth', 'verified', EnsureUserIsAdmin::class])
     ->group(function () {
         Route::get('/', 'index')->name('index');
         Route::get('/users', 'users')->name('users');
+        Route::get('/repos', 'repos')->name('repos');
+        Route::post('/repos/{source}/resync', 'adminResync')->name('repos.resync');
+        Route::delete('/repos/{source}', 'adminDeleteSource')->name('repos.destroy');
         Route::get('/users/{user}', 'showUser')->name('users.show');
         Route::patch('/users/{user}/status', 'toggleUser')->name('users.status');
         Route::patch('/users/{user}/plan', 'changePlan')->name('users.plan');

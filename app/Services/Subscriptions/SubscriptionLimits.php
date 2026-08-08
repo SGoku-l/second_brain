@@ -63,6 +63,16 @@ class SubscriptionLimits
         });
     }
 
+    public function addStorageWithoutLimit(User $user, int $bytes): void
+    {
+        DB::transaction(function () use ($user, $bytes) {
+            $subscription = UserSubscription::query()->lockForUpdate()->where('user_id', $user->id)->first();
+            if (! $subscription) return;
+            $usedBytes = $subscription->storage_used_bytes + max(0, $bytes);
+            $subscription->update(['storage_used_bytes' => $usedBytes, 'storage_used_mb' => (int) ceil($usedBytes / (1024 * 1024))]);
+        });
+    }
+
     public function ensureActive(User $user): void
     {
         $this->activeSubscription($user);

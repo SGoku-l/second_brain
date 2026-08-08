@@ -27,6 +27,7 @@ class IngestRepoJob implements ShouldQueue
     public function __construct(
         public string $sourceId,
         public string $repoFullName,
+        public bool $adminOverride = false,
     ) {
         //
     }
@@ -142,7 +143,7 @@ class IngestRepoJob implements ShouldQueue
                     }
 
                     try {
-                        $limits->reserveStorage($user, strlen($piece));
+                        $this->reserveStorage($limits, $user, strlen($piece));
                     } catch (SubscriptionLimitExceeded $e) {
                         $this->markLimitReached($source, $e->getMessage());
 
@@ -234,7 +235,7 @@ class IngestRepoJob implements ShouldQueue
                     }
 
                     try {
-                        $limits->reserveStorage($user, strlen($piece));
+                        $this->reserveStorage($limits, $user, strlen($piece));
                     } catch (SubscriptionLimitExceeded $e) {
                         $this->markLimitReached($source, $e->getMessage());
 
@@ -311,6 +312,16 @@ class IngestRepoJob implements ShouldQueue
             'reason' => $reason,
             'exception' => $exception,
         ]);
+    }
+
+    private function reserveStorage(SubscriptionLimits $limits, $user, int $bytes): void
+    {
+        if ($this->adminOverride) {
+            $limits->addStorageWithoutLimit($user, $bytes);
+            return;
+        }
+
+        $limits->reserveStorage($user, $bytes);
     }
 
     /** @param array<string, array{files: array<int, array{path: ?string, previous_path: ?string, status: ?string}>}> $commits */

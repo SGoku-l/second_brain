@@ -58,6 +58,25 @@ class AdminController extends Controller
         ]);
     }
 
+    public function repos(): View
+    {
+        return view('admin.repos', ['sources' => Source::query()->with('workspace.user:id,name,email')->withCount('chunks')->orderByDesc('updated_at')->get()]);
+    }
+
+    public function adminResync(Source $source): \Illuminate\Http\RedirectResponse
+    {
+        $source->update(['meta' => array_merge($source->meta ?? [], ['status' => 'indexing', 'last_error' => null, 'last_started_at' => now()->toIso8601String()])]);
+        dispatch(new IngestRepoJob($source->id, $source->identifier, true));
+        return back()->with('status', 'Admin re-sync started for '.$source->identifier.'.');
+    }
+
+    public function adminDeleteSource(Source $source): \Illuminate\Http\RedirectResponse
+    {
+        $user = $source->workspace?->user;
+        abort_unless($user, 404);
+        return $this->forceDeleteSource($user, $source);
+    }
+
     public function showUser(User $user): View
     {
         $sources = Source::query()
@@ -109,7 +128,7 @@ class AdminController extends Controller
     {
         abort_unless($source->workspace?->user_id === $user->id, 404);
         $source->update(['meta' => array_merge($source->meta ?? [], ['status' => 'indexing', 'last_error' => null, 'last_started_at' => now()->toIso8601String()])]);
-        dispatch(new IngestRepoJob($source->id, $source->identifier));
+        dispatch(new IngestRepoJob($source->id, $source->identifier, true));
 
         return back()->with('status', 'Re-index started for '.$source->identifier.'.');
     }
