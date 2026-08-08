@@ -13,7 +13,7 @@
         <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
             @include('components.sb-topbar')
 
-            @if(session('github_connected'))
+            @if(false && session('github_connected'))
                 <div
                     x-data="{ show: true }"
                     x-init="setTimeout(() => show = false, 3500)"
@@ -49,7 +49,7 @@
                 </div>
             @endif
 
-            @if(session('repo_ingest_message'))
+            @if(false && session('repo_ingest_message'))
                 <div
                     x-data="{ show: true }"
                     x-init="setTimeout(() => show = false, 4000)"

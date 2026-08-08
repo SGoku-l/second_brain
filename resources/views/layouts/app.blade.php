@@ -29,5 +29,10 @@
                 {{ $slot }}
             </main>
         </div>
+        <div class="fixed right-4 top-4 z-[400] flex w-[min(24rem,calc(100vw-2rem))] flex-col gap-3">
+            @if(session('github_connected'))<x-sb-toast message="GitHub connected successfully" type="success" />@endif
+            @if(session('repo_ingest_message'))<x-sb-toast :message="session('repo_ingest_message')" type="success" />@endif
+            @if(session('limit_error'))<x-sb-toast :message="session('limit_error')" type="warning" />@endif
+        </div>
     </body>
 </html>

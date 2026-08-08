@@ -1,6 +1,6 @@
 <x-plans-layout title="Manage plan">
     <div x-data="{ modal: null, planName: '', planId: '' }" class="space-y-6">
-        @if(session('subscription_notice'))
+        @if(false && session('subscription_notice'))
             <div class="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-200">{{ session('subscription_notice') }}</div>
         @endif
 

@@ -38,6 +38,7 @@
             </header>
             <main class="mt-6">{{ $slot }}</main>
         </div>
+        @if(session('status'))<div class="fixed right-4 top-4 z-[400] w-[min(24rem,calc(100vw-2rem))]"><x-sb-toast :message="session('status')" type="success" /></div>@endif
     </div>
 </body>
 </html>

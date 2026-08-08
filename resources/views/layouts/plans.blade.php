@@ -26,5 +26,6 @@
             <main class="mt-6">{{ $slot }}</main>
         </div>
     </div>
+    @if(session('subscription_notice'))<div class="fixed right-4 top-4 z-[400] w-[min(24rem,calc(100vw-2rem))]"><x-sb-toast :message="session('subscription_notice')" type="warning" /></div>@endif
 </body>
 </html>

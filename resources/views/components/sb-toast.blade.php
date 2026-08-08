@@ -1,0 +1,6 @@
+@props(['message', 'type' => 'success', 'duration' => null])
+@php
+    $duration ??= in_array($type, ['error', 'warning']) ? 6000 : 4000;
+    $styles = ['success' => 'border-sb-accent/50 text-sb-accent', 'error' => 'border-rose-500/50 text-rose-500 dark:text-rose-400', 'warning' => 'border-amber-500/50 text-amber-600 dark:text-amber-300', 'info' => 'border-sky-500/50 text-sky-600 dark:text-sky-300'];
+@endphp
+<div x-data="{ show: true }" x-init="setTimeout(() => show = false, {{ $duration }})" x-show="show" x-cloak x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 -translate-y-2" {{ $attributes->merge(['class' => 'glass-panel flex items-start justify-between gap-3 rounded-[20px] border-l-4 px-4 py-3 shadow-lg '.$styles[$type]]) }} role="status"><p class="text-sm font-medium text-stone-900 dark:text-stone-100">{{ $message }}</p><button type="button" @click="show = false" class="-mt-1 rounded-full px-2 py-1 text-lg leading-none text-stone-500 hover:bg-black/5 hover:text-stone-900 dark:hover:bg-white/10 dark:hover:text-stone-100" aria-label="Dismiss notification">×</button></div>
