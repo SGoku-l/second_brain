@@ -66,8 +66,23 @@
         @apply focus:border-sb-accent/50 focus:outline-none focus:ring-2 focus:ring-sb-accent/15;
     }
 
+    /*
+     * Dropdown / popover surfaces (profile menu, select panels, etc).
+     * These float directly over page content, so they need to read as a
+     * solid, elevated surface rather than a glass panel — a light blur
+     * over busy content was letting everything behind it show through.
+     */
     .dropdown-panel {
-        @apply rounded-xl border shadow-lg backdrop-blur-xl;
+        @apply rounded-xl border shadow-2xl backdrop-blur-2xl;
+    }
+
+    html.dark .dropdown-panel {
+        @apply border-white/10 bg-stone-950/95 text-stone-200;
+        box-shadow: 0 20px 45px -12px rgba(0, 0, 0, 0.65);
+    }
+
+    html:not(.dark) .dropdown-panel {
+        @apply border-stone-200 bg-white/[0.98] text-stone-800 shadow-glass-light;
     }
 
     .bg-code-grid {
@@ -121,14 +136,6 @@
         50% { opacity: 0.3; }
     }
 
-html.dark .dropdown-panel {
-        @apply border-sb-border-dark bg-sb-glass-dark text-stone-200;
-    }
-
-html:not(.dark) .dropdown-panel {
-        @apply border-sb-border-light bg-sb-glass-light text-stone-800 shadow-glass-light;
-    }
-
     /* Hide scrollbar but keep scroll functionality */
     .scrollbar-hide {
         scrollbar-width: none;
@@ -139,11 +146,11 @@ html:not(.dark) .dropdown-panel {
         display: none;
     }
 
-html.dark .glass-panel {
+    html.dark .glass-panel {
         @apply bg-sb-glass-dark border-sb-border-dark;
     }
 
-html:not(.dark) .glass-panel {
+    html:not(.dark) .glass-panel {
         @apply bg-sb-glass-light border-sb-border-light shadow-glass-light;
     }
 
@@ -152,12 +159,12 @@ html:not(.dark) .glass-panel {
         @apply relative w-14 h-7 rounded-full cursor-pointer transition-all duration-theme;
     }
 
-html.dark .theme-toggle-track {
+    html.dark .theme-toggle-track {
         @apply bg-white/10 border border-white/10;
         box-shadow: inset 0 0 12px rgba(52, 211, 153, 0.08);
     }
 
-html:not(.dark) .theme-toggle-track {
+    html:not(.dark) .theme-toggle-track {
         @apply bg-stone-200/80 border border-stone-300/60;
     }
 
@@ -165,12 +172,12 @@ html:not(.dark) .theme-toggle-track {
         @apply absolute top-0.5 left-0.5 w-6 h-6 rounded-full flex items-center justify-center transition-all duration-theme;
     }
 
-html.dark .theme-toggle-thumb {
+    html.dark .theme-toggle-thumb {
         @apply translate-x-7 bg-sb-accent-dark;
         box-shadow: 0 0 14px rgba(16, 185, 129, 0.5);
     }
 
-html:not(.dark) .theme-toggle-thumb {
+    html:not(.dark) .theme-toggle-thumb {
         @apply translate-x-0 bg-white shadow-md;
     }
 
@@ -182,11 +189,11 @@ html:not(.dark) .theme-toggle-thumb {
         @apply text-amber-500;
     }
 
-html.dark .theme-icon-sun {
+    html.dark .theme-icon-sun {
         @apply opacity-0 scale-50 rotate-90;
     }
 
-html:not(.dark) .theme-icon-sun {
+    html:not(.dark) .theme-icon-sun {
         @apply opacity-100 scale-100 rotate-0;
     }
 
@@ -194,11 +201,11 @@ html:not(.dark) .theme-icon-sun {
         @apply text-sb-bg-dark;
     }
 
-html.dark .theme-icon-moon {
+    html.dark .theme-icon-moon {
         @apply opacity-100 scale-100 rotate-0;
     }
 
-html:not(.dark) .theme-icon-moon {
+    html:not(.dark) .theme-icon-moon {
         @apply opacity-0 scale-50 -rotate-90;
     }
 
@@ -207,11 +214,11 @@ html:not(.dark) .theme-icon-moon {
         @apply flex items-center gap-2.5 w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer select-none;
     }
 
-html.dark .repo-chip {
+    html.dark .repo-chip {
         @apply text-stone-300 hover:bg-white/5;
     }
 
-html:not(.dark) .repo-chip {
+    html:not(.dark) .repo-chip {
         @apply text-stone-600 hover:bg-stone-100/80;
     }
 
@@ -219,12 +226,12 @@ html:not(.dark) .repo-chip {
         @apply border;
     }
 
-html.dark .repo-chip.selected {
+    html.dark .repo-chip.selected {
         @apply bg-sb-accent-muted border-sb-accent/30 text-sb-accent;
         box-shadow: 0 0 12px rgba(52, 211, 153, 0.12);
     }
 
-html:not(.dark) .repo-chip.selected {
+    html:not(.dark) .repo-chip.selected {
         @apply bg-emerald-50 border-emerald-200 text-sb-accent-light;
     }
 
@@ -237,7 +244,7 @@ html:not(.dark) .repo-chip.selected {
         @apply bg-sb-accent;
     }
 
-html.dark .sync-dot.indexed {
+    html.dark .sync-dot.indexed {
         box-shadow: 0 0 6px rgba(52, 211, 153, 0.6);
     }
 
@@ -254,11 +261,11 @@ html.dark .sync-dot.indexed {
         @apply max-w-[85%] sm:max-w-[75%] ml-auto px-4 py-3 rounded-2xl rounded-br-md text-sm leading-relaxed animate-fade-in;
     }
 
-html.dark .msg-user {
+    html.dark .msg-user {
         @apply bg-sb-accent/15 text-stone-100 border border-sb-accent/20;
     }
 
-html:not(.dark) .msg-user {
+    html:not(.dark) .msg-user {
         @apply bg-emerald-100/80 text-stone-800 border border-emerald-200/60;
     }
 
@@ -275,12 +282,12 @@ html:not(.dark) .msg-user {
         @apply glass-panel rounded-2xl px-4 py-3 flex items-end gap-3 transition-shadow duration-200;
     }
 
-html.dark .chat-input-bar:focus-within {
+    html.dark .chat-input-bar:focus-within {
         @apply border-sb-accent/40;
         box-shadow: 0 0 20px rgba(52, 211, 153, 0.15);
     }
 
-html:not(.dark) .chat-input-bar:focus-within {
+    html:not(.dark) .chat-input-bar:focus-within {
         @apply border-emerald-300/60 shadow-glass-light;
     }
 
@@ -288,11 +295,11 @@ html:not(.dark) .chat-input-bar:focus-within {
         @apply shrink-0 w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed;
     }
 
-html.dark .send-btn:not(:disabled) {
+    html.dark .send-btn:not(:disabled) {
         @apply bg-sb-accent text-sb-bg-dark hover:shadow-glow-sm;
     }
 
-html:not(.dark) .send-btn:not(:disabled) {
+    html:not(.dark) .send-btn:not(:disabled) {
         @apply bg-sb-accent-light text-white hover:bg-emerald-700;
     }
 
@@ -301,11 +308,11 @@ html:not(.dark) .send-btn:not(:disabled) {
         @apply text-sm leading-relaxed space-y-3;
     }
 
-html.dark .markdown-body {
+    html.dark .markdown-body {
         @apply text-stone-300;
     }
 
-html:not(.dark) .markdown-body {
+    html:not(.dark) .markdown-body {
         @apply text-stone-700;
     }
 
@@ -315,15 +322,15 @@ html:not(.dark) .markdown-body {
         @apply font-semibold mt-4 mb-2;
     }
 
-html.dark .markdown-body h1,
-html.dark .markdown-body h2,
-html.dark .markdown-body h3 {
+    html.dark .markdown-body h1,
+    html.dark .markdown-body h2,
+    html.dark .markdown-body h3 {
         @apply text-stone-100;
     }
 
-html:not(.dark) .markdown-body h1,
-html:not(.dark) .markdown-body h2,
-html:not(.dark) .markdown-body h3 {
+    html:not(.dark) .markdown-body h1,
+    html:not(.dark) .markdown-body h2,
+    html:not(.dark) .markdown-body h3 {
         @apply text-stone-900;
     }
 
@@ -348,11 +355,11 @@ html:not(.dark) .markdown-body h3 {
         @apply font-mono text-xs px-1.5 py-0.5 rounded;
     }
 
-html.dark .markdown-body code:not(pre code) {
+    html.dark .markdown-body code:not(pre code) {
         @apply bg-white/10 text-sb-accent;
     }
 
-html:not(.dark) .markdown-body code:not(pre code) {
+    html:not(.dark) .markdown-body code:not(pre code) {
         @apply bg-stone-100 text-sb-accent-light;
     }
 
@@ -360,11 +367,11 @@ html:not(.dark) .markdown-body code:not(pre code) {
         @apply font-mono text-xs rounded-xl overflow-x-auto my-3 border;
     }
 
-html.dark .markdown-body pre {
+    html.dark .markdown-body pre {
         @apply bg-black/40 border-white/10;
     }
 
-html:not(.dark) .markdown-body pre {
+    html:not(.dark) .markdown-body pre {
         @apply bg-stone-900 border-stone-800;
     }
 
@@ -376,7 +383,7 @@ html:not(.dark) .markdown-body pre {
         @apply text-sb-accent underline underline-offset-2;
     }
 
-html:not(.dark) .markdown-body a {
+    html:not(.dark) .markdown-body a {
         @apply text-sb-accent-light;
     }
 
@@ -384,11 +391,11 @@ html:not(.dark) .markdown-body a {
         @apply border-l-2 pl-4 italic opacity-80;
     }
 
-html.dark .markdown-body blockquote {
+    html.dark .markdown-body blockquote {
         @apply border-sb-accent/40;
     }
 
-html:not(.dark) .markdown-body blockquote {
+    html:not(.dark) .markdown-body blockquote {
         @apply border-emerald-300;
     }
 
@@ -397,11 +404,11 @@ html:not(.dark) .markdown-body blockquote {
         @apply inline-flex items-center gap-1.5 font-mono text-xs px-2.5 py-1 rounded-md cursor-pointer transition-all duration-200 border;
     }
 
-html.dark .source-chip {
+    html.dark .source-chip {
         @apply bg-white/5 border-white/10 text-stone-400 hover:border-sb-accent/30 hover:text-sb-accent;
     }
 
-html:not(.dark) .source-chip {
+    html:not(.dark) .source-chip {
         @apply bg-stone-100 border-stone-200 text-stone-500 hover:border-emerald-300 hover:text-sb-accent-light;
     }
 
@@ -409,11 +416,11 @@ html:not(.dark) .source-chip {
         @apply border-sb-accent/40;
     }
 
-html.dark .source-chip.expanded {
+    html.dark .source-chip.expanded {
         @apply bg-sb-accent-muted text-sb-accent;
     }
 
-html:not(.dark) .source-chip.expanded {
+    html:not(.dark) .source-chip.expanded {
         @apply bg-emerald-50 text-sb-accent-light;
     }
 
@@ -421,11 +428,11 @@ html:not(.dark) .source-chip.expanded {
         @apply font-mono text-xs p-3 rounded-lg mt-2 whitespace-pre-wrap overflow-x-auto border animate-fade-in;
     }
 
-html.dark .source-snippet {
+    html.dark .source-snippet {
         @apply bg-black/30 border-white/10 text-stone-400;
     }
 
-html:not(.dark) .source-snippet {
+    html:not(.dark) .source-snippet {
         @apply bg-stone-50 border-stone-200 text-stone-600;
     }
 
@@ -455,11 +462,11 @@ html:not(.dark) .source-snippet {
         background: transparent;
     }
 
-html.dark .chat-scroll::-webkit-scrollbar-thumb {
+    html.dark .chat-scroll::-webkit-scrollbar-thumb {
         @apply bg-white/10 rounded-full;
     }
 
-html:not(.dark) .chat-scroll::-webkit-scrollbar-thumb {
+    html:not(.dark) .chat-scroll::-webkit-scrollbar-thumb {
         @apply bg-stone-300 rounded-full;
     }
 
